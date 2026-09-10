@@ -15,16 +15,7 @@ def main():
     playlist = Playlist()
     engine = WallpaperEngine()
 
-    # 載入之前儲存的來源
-    for src in config.get("sources", []):
-        if src["type"] == "folder":
-            source_manager.add_folder(src["path"], src.get("recursive", False))
-        else:
-            source_manager.add_file(src["path"])
-        # 還原啟用狀態
-        if source_manager.sources:
-            source_manager.sources[-1]["enabled"] = src.get("enabled", True)
-
+    # 不再自動載入之前的來源，每次重啟都重新選擇
     window = MainWindow(source_manager, playlist, engine, config)
     window.show()
 

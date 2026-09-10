@@ -69,29 +69,22 @@ class WallpaperEngine:
             draw = ImageDraw.Draw(img)
             filename = Path(image_path).name
             try:
-                font = ImageFont.truetype("msyh.ttc", 18)
+                font = ImageFont.truetype("msyh.ttc", 14)   # 縮小字體
             except:
                 try:
-                    font = ImageFont.truetype("arial.ttf", 18)
+                    font = ImageFont.truetype("arial.ttf", 14)
                 except:
                     font = ImageFont.load_default()
 
-            # 計算文字大小
             bbox = draw.textbbox((0, 0), filename, font=font)
             text_w = bbox[2] - bbox[0]
             text_h = bbox[3] - bbox[1]
-            margin = 12
+            margin = 10
             x = screen_width - text_w - margin
             y = margin
 
-            # 半透明黑底 + 白字（清晰又不搶眼）
-            padding = 6
-            draw.rectangle(
-                [x - padding, y - padding, x + text_w +
-                    padding, y + text_h + padding],
-                fill=(0, 0, 0, 140)
-            )
-            draw.text((x, y), filename, font=font, fill=(255, 255, 255, 220))
+            # 直接黑字，沒有黑底
+            draw.text((x, y), filename, font=font, fill=(0, 0, 0))
 
         temp_path = self.temp_dir / "current_wallpaper.jpg"
         img.save(temp_path, quality=92)

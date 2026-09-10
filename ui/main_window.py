@@ -4,7 +4,8 @@ import shutil
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QListWidget, QPushButton, QLabel, QComboBox,
-    QFileDialog, QGroupBox, QListWidgetItem, QAbstractItemView
+    QFileDialog, QGroupBox, QListWidgetItem, QAbstractItemView,
+    QApplication
 )
 from PySide6.QtCore import Qt, QTimer
 from send2trash import send2trash
@@ -26,17 +27,20 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._connect_signals()
         self._restore_from_config()
-        # 浮動工具列
-        self.toolbar = FloatingToolbar()
-        self.toolbar.prev_clicked.connect(self.prev_wallpaper)
-        self.toolbar.next_clicked.connect(self.next_wallpaper)
-        self.toolbar.pause_clicked.connect(self.toggle_pause)
-        self.toolbar.delete_clicked.connect(self.delete_current)
-        self.toolbar.show()
+        # 多螢幕浮動工具列
+        self.toolbars = []
+        screens = QApplication.screens()
+        for screen in screens:
+            tb = FloatingToolbar()
+            tb.prev_clicked.connect(self.prev_wallpaper)
+            tb.next_clicked.connect(self.next_wallpaper)
+            tb.pause_clicked.connect(self.toggle_pause)
+            tb.delete_clicked.connect(self.delete_current)
+            tb.show()
         # 放在螢幕右下角
-        screen = self.screen().availableGeometry()
-        self.toolbar.move(screen.right() - 240, screen.bottom() - 80)
-        self._connect_signals()
+        geo = screen.availableGeometry()
+        tb.move(geo.right() - 240, geo.bottom() - 80)
+        self.toolbars.append(tb)
 
         # 啟動後如果有圖片就直接套用
         self.refresh_and_apply()
@@ -137,6 +141,8 @@ class MainWindow(QMainWindow):
         self.combo_interval.currentTextChanged.connect(
             self.on_interval_changed)
         self.combo_mode.currentTextChanged.connect(self.on_mode_changed)
+        self.combo_screen.currentTextChanged.connect(
+            self.on_screen_mode_changed)
         self.source_list.itemChanged.connect(self.on_source_item_changed)
 
     def add_folder(self):
@@ -294,20 +300,6 @@ class MainWindow(QMainWindow):
             })
         self.config.set("sources", sources_data)
 
-    def _connect_signals(self):
-        self.btn_add_folder.clicked.connect(self.add_folder)
-        self.btn_add_file.clicked.connect(self.add_file)
-        self.btn_remove.clicked.connect(self.remove_source)
-        self.btn_refresh.clicked.connect(self.refresh_and_apply)
-        self.btn_prev.clicked.connect(self.prev_wallpaper)
-        self.btn_next.clicked.connect(self.next_wallpaper)
-        self.combo_interval.currentTextChanged.connect(
-            self.on_interval_changed)
-        self.combo_mode.currentTextChanged.connect(self.on_mode_changed)
-        self.combo_screen.currentTextChanged.connect(
-            self.on_screen_mode_changed)
-        self.source_list.itemChanged.connect(self.on_source_item_changed)
-
     def on_interval_changed(self, text):
         self.config.set("interval", text)
         self.restart_timer()
@@ -350,11 +342,16 @@ class MainWindow(QMainWindow):
 
     def remove_source(self):
         row = self.source_list.currentRow()
-        if row >= 0:
-            self.source_manager.remove_source(row)
-            self.source_list.takeItem(row)
-            self._save_sources_to_config()
-            self.refresh_and_apply()
+        if row < 0:
+            return
+
+        # 暫時阻止 itemChanged 觸發，避免混亂
+        self.source_list.blockSignals(True)
+        self.source_manager.remove_source(row)
+        self.source_list.takeItem(row)
+        self.source_list.blockSignals(False)
+
+        self.refresh_and_apply()
 
     def on_source_item_changed(self, item: QListWidgetItem):
         row = self.source_list.row(item)
