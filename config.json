@@ -1,0 +1,56 @@
+{
+  "interval_seconds": 15,
+  "mode": "隨機",
+  "scale_mode": "smart_fill",
+  "sources": [
+    {
+      "path": "D:\\圖\\J\\Vicky教主",
+      "enabled": false,
+      "recursive": false,
+      "type": "folder"
+    },
+    {
+      "path": "D:\\圖\\J\\Ellie ssrpeach",
+      "enabled": true,
+      "recursive": false,
+      "type": "folder"
+    },
+    {
+      "path": "D:\\圖\\J\\（图+视频）落落Raku",
+      "enabled": true,
+      "recursive": false,
+      "type": "folder"
+    },
+    {
+      "path": "D:\\圖\\J\\ルリ",
+      "enabled": true,
+      "recursive": false,
+      "type": "folder"
+    },
+    {
+      "path": "D:\\圖\\J\\小丁",
+      "enabled": true,
+      "recursive": false,
+      "type": "folder"
+    },
+    {
+      "path": "D:\\圖\\J",
+      "enabled": true,
+      "recursive": false,
+      "type": "folder"
+    },
+    {
+      "path": "D:\\圖\\J\\Eva",
+      "enabled": true,
+      "recursive": false,
+      "type": "folder"
+    }
+  ],
+  "multi_monitor": {
+    "mode": "independent",
+    "screens": {}
+  },
+  "show_filename_overlay": true,
+  "screen_mode": "所有螢幕同步",
+  "interval": "10秒"
+}

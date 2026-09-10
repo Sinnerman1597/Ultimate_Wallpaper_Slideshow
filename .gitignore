@@ -1,0 +1,31 @@
+# 虛擬環境
+wallpaper_env/
+venv/
+env/
+.venv/
+
+# mpv
+mpv/
+**/mpv/
+
+# Python 快取
+__pycache__/
+*.pyc
+*.pyo
+
+# 暫存與系統檔
+*.log
+Thumbs.db
+.DS_Store
+temp/
+*.tmp
+
+# 可選：如果不想上傳設定檔
+# config.json
+
+# 其他
+.DS_Store
+Thumbs.db
+*.jpg
+*.png
+!resources/
