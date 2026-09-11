@@ -37,10 +37,11 @@ class MainWindow(QMainWindow):
             tb.pause_clicked.connect(self.toggle_pause)
             tb.delete_clicked.connect(self.delete_current)
             tb.show()
-        # 放在螢幕右下角
-        geo = screen.availableGeometry()
-        tb.move(geo.right() - 240, geo.bottom() - 80)
-        self.toolbars.append(tb)
+
+            # 放在螢幕右下角
+            geo = screen.availableGeometry()
+            tb.move(geo.right() - 240, geo.bottom() - 80)
+            self.toolbars.append(tb)
 
         # 啟動後如果有圖片就直接套用
         self.refresh_and_apply()
@@ -234,10 +235,12 @@ class MainWindow(QMainWindow):
     def toggle_pause(self):
         if self.timer.isActive():
             self.timer.stop()
-            self.toolbar.set_paused(True)
+            for tb in self.toolbars:
+                tb.set_paused(True)
         else:
             self.restart_timer()
-            self.toolbar.set_paused(False)
+            for tb in self.toolbars:
+                tb.set_paused(False)
 
     def delete_current(self):
         current = self.playlist.current()
