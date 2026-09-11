@@ -12,11 +12,9 @@ def main():
 
     config = ConfigManager()
     source_manager = SourceManager()
-    playlist = Playlist()
     engine = WallpaperEngine()
 
-    # 不再自動載入之前的來源，每次重啟都重新選擇
-    window = MainWindow(source_manager, playlist, engine, config)
+    window = MainWindow(source_manager, engine, config)
     window.show()
 
     sys.exit(app.exec())
