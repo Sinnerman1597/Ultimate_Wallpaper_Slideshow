@@ -1,16 +1,10 @@
 {
   "interval_seconds": 15,
-  "mode": "隨機",
+  "mode": "順序",
   "scale_mode": "smart_fill",
   "sources": [
     {
       "path": "D:\\圖\\J\\Eva",
-      "enabled": true,
-      "recursive": false,
-      "type": "folder"
-    },
-    {
-      "path": "D:\\圖\\J\\AI Generated4",
       "enabled": true,
       "recursive": false,
       "type": "folder"

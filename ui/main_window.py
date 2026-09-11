@@ -145,6 +145,10 @@ class MainWindow(QMainWindow):
         self.combo_screen.currentTextChanged.connect(
             self.on_screen_mode_changed)
         self.source_list.itemChanged.connect(self.on_source_item_changed)
+        self.source_list.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu)
+        self.source_list.customContextMenuRequested.connect(
+            self.show_source_context_menu)
 
     def add_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "選擇資料夾")
@@ -184,9 +188,10 @@ class MainWindow(QMainWindow):
         self.refresh_and_apply()
 
     def refresh_and_apply(self):
-        images = self.source_manager.get_all_images()
-        self.playlist.set_images(images)
-        if images:
+        mode = self.combo_screen.currentText()
+        files = self.source_manager.get_files_for_screen(mode)
+        self.playlist.set_images(files)
+        if files:
             self.apply_current()
             self.restart_timer()
         else:
@@ -317,14 +322,27 @@ class MainWindow(QMainWindow):
 
     def add_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "選擇資料夾")
-        if folder:
-            if self.source_manager.add_folder(folder):
-                item = QListWidgetItem(folder)
-                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(Qt.CheckState.Checked)
-                self.source_list.addItem(item)
-                self._save_sources_to_config()
-                self.refresh_and_apply()
+        if not folder:
+            return
+
+        # 簡單對話：是否含子資料夾
+        from PySide6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self, "子資料夾",
+            "是否包含子資料夾內的檔案？\n（選「是」= 遞迴，選「否」= 僅本層）",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        recursive = reply == QMessageBox.StandardButton.Yes
+
+        if self.source_manager.add_folder(folder, recursive=recursive, media_filter="image", bind_screen="all"):
+            text = f"{folder}  [{'含子層' if recursive else '僅本層'}] [圖片] [所有螢幕]"
+            item = QListWidgetItem(text)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked)
+            item.setData(Qt.ItemDataRole.UserRole, len(
+                self.source_manager.sources) - 1)
+            self.source_list.addItem(item)
+            self.refresh_and_apply()
 
     def add_file(self):
         files, _ = QFileDialog.getOpenFileNames(
@@ -362,3 +380,66 @@ class MainWindow(QMainWindow):
         self.source_manager.set_enabled(row, enabled)
         self._save_sources_to_config()
         self.refresh_and_apply()
+
+    def show_source_context_menu(self, pos):
+        item = self.source_list.itemAt(pos)
+        if not item:
+            return
+        row = self.source_list.row(item)
+        if row < 0 or row >= len(self.source_manager.sources):
+            return
+
+        from PySide6.QtWidgets import QMenu
+        menu = QMenu(self)
+
+        # 綁定螢幕
+        screen_menu = menu.addMenu("綁定螢幕")
+        act_all = screen_menu.addAction("所有螢幕")
+        act_all.triggered.connect(lambda: self._set_bind(row, "all"))
+        for i in range(1, self.screen_count + 1):
+            act = screen_menu.addAction(f"螢幕{i}")
+            act.triggered.connect(
+                lambda checked, n=i: self._set_bind(row, str(n)))
+
+        # 子資料夾
+        rec_menu = menu.addMenu("子資料夾")
+        act_no = rec_menu.addAction("僅本層")
+        act_no.triggered.connect(lambda: self._set_recursive(row, False))
+        act_yes = rec_menu.addAction("含子層")
+        act_yes.triggered.connect(lambda: self._set_recursive(row, True))
+
+        # 媒體類型
+        media_menu = menu.addMenu("媒體類型")
+        act_img = media_menu.addAction("只圖片")
+        act_img.triggered.connect(lambda: self._set_media(row, "image"))
+        act_vid = media_menu.addAction("只影片")
+        act_vid.triggered.connect(lambda: self._set_media(row, "video"))
+        act_both = media_menu.addAction("圖片+影片")
+        act_both.triggered.connect(lambda: self._set_media(row, "both"))
+
+        menu.exec(self.source_list.mapToGlobal(pos))
+
+    def _set_bind(self, row, bind):
+        self.source_manager.set_bind_screen(row, bind)
+        self._update_item_text(row)
+        self.refresh_and_apply()
+
+    def _set_recursive(self, row, recursive):
+        self.source_manager.set_recursive(row, recursive)
+        self._update_item_text(row)
+        self.refresh_and_apply()
+
+    def _set_media(self, row, media):
+        self.source_manager.set_media_filter(row, media)
+        self._update_item_text(row)
+        self.refresh_and_apply()
+
+    def _update_item_text(self, row):
+        src = self.source_manager.sources[row]
+        rec = "含子層" if src.get("recursive") else "僅本層"
+        media_map = {"image": "圖片", "video": "影片", "both": "圖片+影片"}
+        media = media_map.get(src.get("media_filter", "image"), "圖片")
+        bind = src.get("bind_screen", "all")
+        bind_text = "所有螢幕" if bind == "all" else f"螢幕{bind}"
+        text = f"{src['path']}  [{rec}] [{media}] [{bind_text}]"
+        self.source_list.item(row).setText(text)
