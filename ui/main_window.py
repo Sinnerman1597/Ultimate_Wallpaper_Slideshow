@@ -22,6 +22,7 @@ class MainWindow(QMainWindow):
 
         self.current_edit_key = "all"      # 目前正在設定的螢幕
         self.is_editing = False
+        self._tree_check_guard = False
 
         # 每個螢幕一個獨立播放器
         self._create_players()
@@ -235,6 +236,7 @@ class MainWindow(QMainWindow):
         self.tree_folders.itemDoubleClicked.connect(
             self.on_folder_double_clicked)
         self.tree_folders.itemExpanded.connect(self.on_folder_expanded)
+        self.tree_folders.itemChanged.connect(self.on_folder_item_changed)
         self.chk_all_folders.stateChanged.connect(self._toggle_all_folders)
         self.chk_all_images.stateChanged.connect(self._toggle_all_images)
         self.chk_all_videos.stateChanged.connect(self._toggle_all_videos)
@@ -342,6 +344,8 @@ class MainWindow(QMainWindow):
                         continue
                     child = self._create_folder_item(str(sub), recursive=True)
                     parent_item.addChild(child)
+                    # 繼承母資料夾勾選狀態
+                    child.setCheckState(0, parent_item.checkState(0))
         except Exception:
             pass
 
@@ -435,6 +439,28 @@ class MainWindow(QMainWindow):
         item.setText(0, path if recursive else f"{path}  【僅本層】")
         item.setExpanded(was_expanded)
         self._save_all_config()
+
+    def _set_tree_checked_recursive(self, item, state):
+        """由上往下設定勾選，不觸發 itemChanged 遞迴爆炸"""
+        item.setCheckState(0, state)
+        for i in range(item.childCount()):
+            self._set_tree_checked_recursive(item.child(i), state)
+
+    def on_folder_item_changed(self, item, column):
+        """母資料夾勾選／取消 → 連動所有子資料夾"""
+        if column != 0:
+            return
+        if self._tree_check_guard:
+            return
+
+        self._tree_check_guard = True
+        try:
+            state = item.checkState(0)
+            # 只往下連動，不往上改父層
+            for i in range(item.childCount()):
+                self._set_tree_checked_recursive(item.child(i), state)
+        finally:
+            self._tree_check_guard = False
 
     def on_folder_expanded(self, item):
         """展開時載入下一層（若還沒載入）"""
