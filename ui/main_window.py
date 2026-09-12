@@ -478,12 +478,35 @@ class MainWindow(QMainWindow):
 
         # 收集有勾選的資料夾（含子節點）
         def collect_tree(item):
-            if item.checkState(0) == Qt.CheckState.Checked:
-                path = item.data(0, Qt.ItemDataRole.UserRole)
-                recursive = item.data(0, Qt.ItemDataRole.UserRole + 1)
-                if path:
-                    sources.append(
-                        {"path": path, "recursive": bool(recursive)})
+            checked = item.checkState(0) == Qt.CheckState.Checked
+            path = item.data(0, Qt.ItemDataRole.UserRole)
+            # recursive=True 表示「含子層」；False 表示「僅本層」
+            recursive = bool(item.data(0, Qt.ItemDataRole.UserRole + 1))
+
+            if checked and path:
+                if not recursive:
+                    # ===== 僅本層：絕對優先，只收本層，忽略所有子節點 =====
+                    sources.append({"path": path, "recursive": False})
+                    return
+
+                # ===== 含子層 =====
+                # 若有任何子節點被勾選 → 本層只收直接檔案，再依子節點規則往下
+                # 若沒有子節點、或子節點都沒勾 → 整棵 rglob（等同只選這個資料夾）
+                any_child_checked = False
+                for i in range(item.childCount()):
+                    if item.child(i).checkState(0) == Qt.CheckState.Checked:
+                        any_child_checked = True
+                        break
+
+                if item.childCount() == 0 or not any_child_checked:
+                    sources.append({"path": path, "recursive": True})
+                else:
+                    sources.append({"path": path, "recursive": False})
+                    for i in range(item.childCount()):
+                        collect_tree(item.child(i))
+                return
+
+            # 自己沒勾選 → 仍檢查子節點（例如只勾了深層的 D）
             for i in range(item.childCount()):
                 collect_tree(item.child(i))
 
