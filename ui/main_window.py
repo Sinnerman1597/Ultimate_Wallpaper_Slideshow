@@ -52,6 +52,8 @@ class MainWindow(QMainWindow):
             tb.move(geo.right() - 240, geo.bottom() - 80)
             self.toolbars.append(tb)
 
+        # 從 config 還原來源列表與各螢幕設定
+        self._restore_from_config()
         # 啟動所有播放器
         for player in self.players.values():
             player.start()
@@ -282,11 +284,13 @@ class MainWindow(QMainWindow):
         if not self.is_editing:
             player = self.players[self.current_edit_key]
             player.set_interval(text)
+            self._save_all_config()
 
     def on_mode_changed(self, text):
         if not self.is_editing:
             player = self.players[self.current_edit_key]
             player.set_mode(text)
+            self._save_all_config()
 
     def add_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "選擇資料夾")
@@ -300,6 +304,7 @@ class MainWindow(QMainWindow):
         root = self._create_folder_item(folder, recursive=True)
         self.tree_folders.addTopLevelItem(root)
         self._load_subfolders(root)  # 載入一層子資料夾
+        self._save_all_config()
 
     def _create_folder_item(self, path: str, recursive: bool = True):
         from PySide6.QtWidgets import QTreeWidgetItem
@@ -351,6 +356,8 @@ class MainWindow(QMainWindow):
                 self._add_to_list(self.list_images, f)
             elif ext in self.VIDEO_EXTS:
                 self._add_to_list(self.list_videos, f)
+
+        self._save_all_config()
 
     def _add_to_list(self, list_widget: QListWidget, path: str):
         for i in range(list_widget.count()):
@@ -416,6 +423,8 @@ class MainWindow(QMainWindow):
                 if lw.item(i).checkState() == Qt.CheckState.Checked:
                     lw.takeItem(i)
 
+        self._save_all_config()
+
     def on_folder_double_clicked(self, item, column):
         path = item.data(0, Qt.ItemDataRole.UserRole)
         if not path or not Path(path).is_dir():
@@ -425,6 +434,7 @@ class MainWindow(QMainWindow):
         item.setData(0, Qt.ItemDataRole.UserRole + 1, recursive)
         item.setText(0, path if recursive else f"{path}  【僅本層】")
         item.setExpanded(was_expanded)
+        self._save_all_config()
 
     def on_folder_expanded(self, item):
         """展開時載入下一層（若還沒載入）"""
@@ -481,6 +491,135 @@ class MainWindow(QMainWindow):
         self.btn_confirm.setEnabled(False)
         self.combo_screen.setEnabled(True)
         QMessageBox.information(self, "完成", f"已套用到目前螢幕（{len(sources)} 個來源）。")
+        self._save_all_config()
+
+        def _collect_ui_sources(self) -> dict:
+            """收集左側三大區塊目前的來源（供下次啟動還原列表）"""
+            folders = []
+
+        def walk(item):
+            path = item.data(0, Qt.ItemDataRole.UserRole)
+            recursive = bool(item.data(0, Qt.ItemDataRole.UserRole + 1))
+            if path:
+                folders.append({"path": path, "recursive": recursive})
+            for i in range(item.childCount()):
+                walk(item.child(i))
+
+        for i in range(self.tree_folders.topLevelItemCount()):
+            # 只存頂層即可，子層啟動時再展開載入；但 recursive 要保留頂層的
+            item = self.tree_folders.topLevelItem(i)
+            path = item.data(0, Qt.ItemDataRole.UserRole)
+            recursive = bool(item.data(0, Qt.ItemDataRole.UserRole + 1))
+            if path:
+                folders.append({"path": path, "recursive": recursive})
+
+        images = []
+        for i in range(self.list_images.count()):
+            p = self.list_images.item(i).data(Qt.ItemDataRole.UserRole)
+            if p:
+                images.append(p)
+
+        videos = []
+        for i in range(self.list_videos.count()):
+            p = self.list_videos.item(i).data(Qt.ItemDataRole.UserRole)
+            if p:
+                videos.append(p)
+
+        return {"folders": folders, "images": images, "videos": videos}
+
+    def _save_all_config(self):
+        """把 UI 來源 + 各螢幕 player 設定寫入 config.json"""
+        players_data = {}
+        for key, player in self.players.items():
+            players_data[key] = {
+                "sources": player.sources,
+                "interval": player.interval_text,
+                "mode": player.mode_text,
+            }
+        self.config.set("players", players_data)
+        self.config.set("ui_sources", self._collect_ui_sources())
+        self.config.set("last_edit_key", self.current_edit_key)
+
+    def _restore_from_config(self):
+        """啟動時還原左側列表與各 ScreenPlayer"""
+        ui = self.config.get("ui_sources") or {}
+        folders = ui.get("folders") or []
+        images = ui.get("images") or []
+        videos = ui.get("videos") or []
+
+        # 還原資料夾（僅頂層；子層展開時再載入）
+        for fd in folders:
+            path = fd.get("path")
+            recursive = fd.get("recursive", True)
+            if not path or not Path(path).exists():
+                continue
+            # 避免重複
+            exists = False
+            for i in range(self.tree_folders.topLevelItemCount()):
+                if self.tree_folders.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) == path:
+                    exists = True
+                    break
+            if exists:
+                continue
+            root = self._create_folder_item(path, recursive=recursive)
+            self.tree_folders.addTopLevelItem(root)
+            self._load_subfolders(root)
+
+        for p in images:
+            if Path(p).exists():
+                self._add_to_list(self.list_images, p)
+
+        for p in videos:
+            if Path(p).exists():
+                self._add_to_list(self.list_videos, p)
+
+        # 還原各螢幕 player
+        players_data = self.config.get("players") or {}
+        for key, player in self.players.items():
+            pdata = players_data.get(key)
+            if not pdata:
+                continue
+            sources = pdata.get("sources") or []
+            # 過濾不存在的路徑
+            valid = []
+            for s in sources:
+                path = s.get("path") if isinstance(s, dict) else None
+                if path and Path(path).exists():
+                    valid.append(s)
+            player.set_sources(valid)
+            player.set_interval(pdata.get("interval", "10秒"))
+            player.set_mode(pdata.get("mode", "順序"))
+
+        # 還原上次編輯的螢幕選項
+        last_key = self.config.get("last_edit_key", "all")
+        if last_key == "all":
+            self.combo_screen.setCurrentText("所有螢幕同步")
+        else:
+            text = f"螢幕{last_key}"
+            idx = self.combo_screen.findText(text)
+            if idx >= 0:
+                self.combo_screen.setCurrentIndex(idx)
+        self.current_edit_key = self._get_key_from_combo()
+        self._update_lock_label()
+
+        # 同步右側週期／模式顯示
+        player = self.players.get(self.current_edit_key)
+        if player:
+            idx = self.combo_interval.findText(player.interval_text)
+            if idx >= 0:
+                self.combo_interval.blockSignals(True)
+                self.combo_interval.setCurrentIndex(idx)
+                self.combo_interval.blockSignals(False)
+            idx = self.combo_mode.findText(player.mode_text)
+            if idx >= 0:
+                self.combo_mode.blockSignals(True)
+                self.combo_mode.setCurrentIndex(idx)
+                self.combo_mode.blockSignals(False)
+
+    def closeEvent(self, event):
+        """關閉視窗時存檔"""
+        self._save_all_config()
+        super().closeEvent(event)
 
     def prev_current(self):
         self.players[self.current_edit_key].prev()

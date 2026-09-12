@@ -1,4 +1,37 @@
 {
+  "last_edit_key": "all",
+  "ui_sources": {
+    "folders": [],
+    "images": [],
+    "videos": []
+  },
+  "players": {
+    "all": {
+      "sources": [],
+      "interval": "10秒",
+      "mode": "順序"
+    },
+    "1": {
+      "sources": [
+        {
+          "path": "D:/圖/J/Eva",
+          "recursive": true
+        }
+      ],
+      "interval": "10秒",
+      "mode": "順序"
+    },
+    "2": {
+      "sources": [
+        {
+          "path": "D:/圖/J/月希",
+          "recursive": true
+        }
+      ],
+      "interval": "10秒",
+      "mode": "隨機"
+    }
+  },
   "interval_seconds": 15,
   "mode": "順序",
   "scale_mode": "smart_fill",
