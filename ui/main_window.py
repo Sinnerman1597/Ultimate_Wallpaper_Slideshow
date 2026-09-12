@@ -493,20 +493,10 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "完成", f"已套用到目前螢幕（{len(sources)} 個來源）。")
         self._save_all_config()
 
-        def _collect_ui_sources(self) -> dict:
-            """收集左側三大區塊目前的來源（供下次啟動還原列表）"""
-            folders = []
-
-        def walk(item):
-            path = item.data(0, Qt.ItemDataRole.UserRole)
-            recursive = bool(item.data(0, Qt.ItemDataRole.UserRole + 1))
-            if path:
-                folders.append({"path": path, "recursive": recursive})
-            for i in range(item.childCount()):
-                walk(item.child(i))
-
+    def _collect_ui_sources(self) -> dict:
+        """收集左側三大區塊目前的來源（供下次啟動還原列表）"""
+        folders = []
         for i in range(self.tree_folders.topLevelItemCount()):
-            # 只存頂層即可，子層啟動時再展開載入；但 recursive 要保留頂層的
             item = self.tree_folders.topLevelItem(i)
             path = item.data(0, Qt.ItemDataRole.UserRole)
             recursive = bool(item.data(0, Qt.ItemDataRole.UserRole + 1))

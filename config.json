@@ -1,7 +1,20 @@
 {
-  "last_edit_key": "all",
+  "last_edit_key": "1",
   "ui_sources": {
-    "folders": [],
+    "folders": [
+      {
+        "path": "D:/圖/J/Eva",
+        "recursive": true
+      },
+      {
+        "path": "D:/圖/J/月希",
+        "recursive": true
+      },
+      {
+        "path": "D:/圖/J/Pic",
+        "recursive": true
+      }
+    ],
     "images": [],
     "videos": []
   },
@@ -24,7 +37,19 @@
     "2": {
       "sources": [
         {
-          "path": "D:/圖/J/月希",
+          "path": "D:/圖/J/Eva",
+          "recursive": true
+        },
+        {
+          "path": "D:\\圖\\J\\Eva\\1",
+          "recursive": true
+        },
+        {
+          "path": "D:\\圖\\J\\Eva\\3",
+          "recursive": true
+        },
+        {
+          "path": "D:/圖/J/Pic",
           "recursive": true
         }
       ],

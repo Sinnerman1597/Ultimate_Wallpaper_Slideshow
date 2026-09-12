@@ -86,7 +86,16 @@ class WallpaperEngine:
             # 直接黑字，沒有黑底
             draw.text((x, y), filename, font=font, fill=(0, 0, 0))
 
-        temp_path = self.temp_dir / "current_wallpaper.jpg"
+        # 每個螢幕用不同暫存檔，避免互相覆蓋導致閃圖
+        if screen_mode == "所有螢幕同步":
+            temp_name = "current_wallpaper_all.jpg"
+        elif screen_mode.startswith("螢幕"):
+            num = screen_mode.replace("螢幕", "").strip()
+            temp_name = f"current_wallpaper_{num}.jpg"
+        else:
+            temp_name = "current_wallpaper.jpg"
+
+        temp_path = self.temp_dir / temp_name
         img.save(temp_path, quality=92)
         temp_path_str = str(temp_path)
 
