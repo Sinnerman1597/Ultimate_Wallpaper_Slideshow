@@ -11,6 +11,9 @@ from core.screen_player import ScreenPlayer
 
 
 class MainWindow(QMainWindow):
+    IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp', '.gif'}
+    VIDEO_EXTS = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm'}
+
     def __init__(self, source_manager, engine, config):
         super().__init__()
         self.source_manager = source_manager
@@ -234,29 +237,6 @@ class MainWindow(QMainWindow):
                                 "資料夾項目可點擊後方的【僅本層】文字來切換。\n"
                                 "完成後按「確認」。")
 
-    def confirm_edit(self):
-        sources = []
-        for i in range(self.source_list.count()):
-            item = self.source_list.item(i)
-            if item.checkState() == Qt.CheckState.Checked:
-                path = item.data(Qt.ItemDataRole.UserRole)
-                recursive = item.data(Qt.ItemDataRole.UserRole + 1)
-                if path:
-                    sources.append(
-                        {"path": path, "recursive": bool(recursive)})
-
-        player = self.players[self.current_edit_key]
-        player.set_sources(sources)
-        player.set_interval(self.combo_interval.currentText())
-        player.set_mode(self.combo_mode.currentText())
-        player.start()
-
-        self.is_editing = False
-        self.btn_edit.setEnabled(True)
-        self.btn_confirm.setEnabled(False)
-        self.combo_screen.setEnabled(True)
-        QMessageBox.information(self, "完成", f"已套用到目前螢幕（{len(sources)} 個來源）。")
-
     def on_screen_changed(self, text):
         if self.is_editing:
             return
@@ -299,15 +279,18 @@ class MainWindow(QMainWindow):
         self.tree_folders.addTopLevelItem(root)
         self._load_subfolders(root)  # 載入一層子資料夾
 
-    def _create_folder_item(self, path: str, recursive: bool = True) -> "QTreeWidgetItem":
+    def _create_folder_item(self, path: str, recursive: bool = True):
         from PySide6.QtWidgets import QTreeWidgetItem
-        text = path if recursive else f"{path}  【僅本層】"
-        item = QTreeWidgetItem([text])
-        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable |
-                      Qt.ItemFlag.ItemIsAutoTristate)
+        item = QTreeWidgetItem()
+        item.setFlags(
+            Qt.ItemFlag.ItemIsEnabled |
+            Qt.ItemFlag.ItemIsSelectable |
+            Qt.ItemFlag.ItemIsUserCheckable
+        )
         item.setCheckState(0, Qt.CheckState.Checked)
-        item.setData(0, Qt.ItemDataRole.UserRole, path)           # path
-        item.setData(0, Qt.ItemDataRole.UserRole + 1, recursive)  # recursive
+        item.setData(0, Qt.ItemDataRole.UserRole, path)
+        item.setData(0, Qt.ItemDataRole.UserRole + 1, recursive)
+        item.setText(0, path if recursive else f"{path}  【僅本層】")
         return item
 
     def _load_subfolders(self, parent_item):
@@ -358,8 +341,19 @@ class MainWindow(QMainWindow):
         list_widget.addItem(item)
 
     def remove_selected(self):
-        # 資料夾樹
-        for item in self.tree_folders.selectedItems():
+        # 資料夾：收集所有勾選節點後刪除
+        to_remove = []
+
+        def collect(item):
+            for i in range(item.childCount()):
+                collect(item.child(i))
+            if item.checkState(0) == Qt.CheckState.Checked:
+                to_remove.append(item)
+
+        for i in range(self.tree_folders.topLevelItemCount()):
+            collect(self.tree_folders.topLevelItem(i))
+
+        for item in to_remove:
             parent = item.parent()
             if parent:
                 parent.removeChild(item)
@@ -368,26 +362,21 @@ class MainWindow(QMainWindow):
                 if idx >= 0:
                     self.tree_folders.takeTopLevelItem(idx)
 
-        # 圖片
-        for item in self.list_images.selectedItems():
-            self.list_images.takeItem(self.list_images.row(item))
-
-        # 影片
-        for item in self.list_videos.selectedItems():
-            self.list_videos.takeItem(self.list_videos.row(item))
+        # 圖片、影片
+        for lw in (self.list_images, self.list_videos):
+            for i in range(lw.count() - 1, -1, -1):
+                if lw.item(i).checkState() == Qt.CheckState.Checked:
+                    lw.takeItem(i)
 
     def on_folder_double_clicked(self, item, column):
-        """雙擊資料夾 → 切換僅本層"""
         path = item.data(0, Qt.ItemDataRole.UserRole)
         if not path or not Path(path).is_dir():
             return
-        recursive = item.data(0, Qt.ItemDataRole.UserRole + 1)
-        recursive = not recursive
+        was_expanded = item.isExpanded()
+        recursive = not bool(item.data(0, Qt.ItemDataRole.UserRole + 1))
         item.setData(0, Qt.ItemDataRole.UserRole + 1, recursive)
-        if recursive:
-            item.setText(0, path)
-        else:
-            item.setText(0, f"{path}  【僅本層】")
+        item.setText(0, path if recursive else f"{path}  【僅本層】")
+        item.setExpanded(was_expanded)
 
     def on_folder_expanded(self, item):
         """展開時載入下一層（若還沒載入）"""
