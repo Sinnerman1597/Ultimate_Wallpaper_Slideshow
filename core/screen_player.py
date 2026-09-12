@@ -4,6 +4,7 @@ from PySide6.QtCore import QObject, QTimer, Signal
 from core.playlist import Playlist
 
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp', '.gif'}
+VIDEO_EXTS = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm'}
 
 
 class ScreenPlayer(QObject):
