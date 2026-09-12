@@ -87,30 +87,49 @@ class MainWindow(QMainWindow):
         folder_widget = QWidget()
         folder_layout = QVBoxLayout(folder_widget)
         folder_layout.setContentsMargins(0, 0, 0, 0)
-        folder_layout.addWidget(QLabel("📁 資料夾"))
+        folder_header = QHBoxLayout()
+        self.chk_all_folders = QCheckBox()
+        self.chk_all_folders.setToolTip("全選／取消全選資料夾")
+        folder_header.addWidget(self.chk_all_folders)
+        folder_header.addWidget(QLabel("📁 資料夾"))
+        folder_header.addStretch()
+        folder_layout.addLayout(folder_header)
         self.tree_folders = QTreeWidget()
         self.tree_folders.setHeaderHidden(True)
+        self.tree_folders.setExpandsOnDoubleClick(False)  # 重要：雙擊不展開
         self.tree_folders.setSelectionMode(
             QAbstractItemView.SelectionMode.ExtendedSelection)
         folder_layout.addWidget(self.tree_folders)
         self.splitter.addWidget(folder_widget)
 
-        # --- 圖片區塊 ---
+        # --- 圖片 ---
         image_widget = QWidget()
         image_layout = QVBoxLayout(image_widget)
         image_layout.setContentsMargins(0, 0, 0, 0)
-        image_layout.addWidget(QLabel("🖼 圖片"))
+        image_header = QHBoxLayout()
+        self.chk_all_images = QCheckBox()
+        self.chk_all_images.setToolTip("全選／取消全選圖片")
+        image_header.addWidget(self.chk_all_images)
+        image_header.addWidget(QLabel("🖼 圖片"))
+        image_header.addStretch()
+        image_layout.addLayout(image_header)
         self.list_images = QListWidget()
         self.list_images.setSelectionMode(
             QAbstractItemView.SelectionMode.ExtendedSelection)
         image_layout.addWidget(self.list_images)
         self.splitter.addWidget(image_widget)
 
-        # --- 影片區塊 ---
+        # --- 影片 ---
         video_widget = QWidget()
         video_layout = QVBoxLayout(video_widget)
         video_layout.setContentsMargins(0, 0, 0, 0)
-        video_layout.addWidget(QLabel("🎬 影片"))
+        video_header = QHBoxLayout()
+        self.chk_all_videos = QCheckBox()
+        self.chk_all_videos.setToolTip("全選／取消全選影片")
+        video_header.addWidget(self.chk_all_videos)
+        video_header.addWidget(QLabel("🎬 影片"))
+        video_header.addStretch()
+        video_layout.addLayout(video_header)
         self.list_videos = QListWidget()
         self.list_videos.setSelectionMode(
             QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -214,6 +233,9 @@ class MainWindow(QMainWindow):
         self.tree_folders.itemDoubleClicked.connect(
             self.on_folder_double_clicked)
         self.tree_folders.itemExpanded.connect(self.on_folder_expanded)
+        self.chk_all_folders.stateChanged.connect(self._toggle_all_folders)
+        self.chk_all_images.stateChanged.connect(self._toggle_all_images)
+        self.chk_all_videos.stateChanged.connect(self._toggle_all_videos)
 
     def _get_key_from_combo(self) -> str:
         text = self.combo_screen.currentText()
@@ -287,7 +309,7 @@ class MainWindow(QMainWindow):
             Qt.ItemFlag.ItemIsSelectable |
             Qt.ItemFlag.ItemIsUserCheckable
         )
-        item.setCheckState(0, Qt.CheckState.Checked)
+        item.setCheckState(0, Qt.CheckState.Checked)  # 新增時預設勾選
         item.setData(0, Qt.ItemDataRole.UserRole, path)
         item.setData(0, Qt.ItemDataRole.UserRole + 1, recursive)
         item.setText(0, path if recursive else f"{path}  【僅本層】")
@@ -339,6 +361,32 @@ class MainWindow(QMainWindow):
         item.setCheckState(Qt.CheckState.Checked)
         item.setData(Qt.ItemDataRole.UserRole, path)
         list_widget.addItem(item)
+
+    def _normalize_check_state(self, state):
+        """相容 int 與 CheckState"""
+        if state == Qt.CheckState.Checked or state == 2 or state == Qt.CheckState.Checked.value:
+            return Qt.CheckState.Checked
+        return Qt.CheckState.Unchecked
+
+    def _set_tree_checked(self, item, state):
+        item.setCheckState(0, state)
+        for i in range(item.childCount()):
+            self._set_tree_checked(item.child(i), state)
+
+    def _toggle_all_folders(self, state):
+        check = self._normalize_check_state(state)
+        for i in range(self.tree_folders.topLevelItemCount()):
+            self._set_tree_checked(self.tree_folders.topLevelItem(i), check)
+
+    def _toggle_all_images(self, state):
+        check = self._normalize_check_state(state)
+        for i in range(self.list_images.count()):
+            self.list_images.item(i).setCheckState(check)
+
+    def _toggle_all_videos(self, state):
+        check = self._normalize_check_state(state)
+        for i in range(self.list_videos.count()):
+            self.list_videos.item(i).setCheckState(check)
 
     def remove_selected(self):
         # 資料夾：收集所有勾選節點後刪除
