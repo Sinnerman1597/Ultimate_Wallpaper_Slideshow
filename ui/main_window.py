@@ -483,48 +483,48 @@ class MainWindow(QMainWindow):
                 if child.childCount() == 0:
                     self._load_subfolders(child)
 
-        def _apply_mutex(self, active_key: str):
-            """
-            active_key == "all"：只跑同步，各別螢幕停止，並清空「已獨立」標記。
-            active_key 為 "1"/"2"...：停止同步；
-            - 在 independent_keys 裡的螢幕用自己的 sources
-            - 其餘各別螢幕改用 last_sync_sources（維持同步時的內容）
-            """
-            if active_key == "all":
-                self.independent_keys.clear()
-                for key, player in self.players.items():
-                    if key == "all":
-                        if player.playlist.images:
-                            player.start()
-                        else:
-                            player.stop()
-                    else:
-                        player.stop()
-                return
-
-            # 各別螢幕模式
-            if "all" in self.players:
-                self.players["all"].stop()
-
+    def _apply_mutex(self, active_key: str):
+        """
+        active_key == "all"：只跑同步，各別螢幕停止，並清空「已獨立」標記。
+        active_key 為 "1"/"2"...：停止同步；
+        - 在 independent_keys 裡的螢幕用自己的 sources
+        - 其餘各別螢幕改用 last_sync_sources（維持同步時的內容）
+        """
+        if active_key == "all":
+            self.independent_keys.clear()
             for key, player in self.players.items():
                 if key == "all":
-                    continue
-                if key in self.independent_keys:
-                    # 使用者有為這個螢幕按過確認 → 用自己的來源
                     if player.playlist.images:
                         player.start()
                     else:
                         player.stop()
                 else:
-                    # 尚未再確認 → 跟隨最後一次同步來源
-                    if self.last_sync_sources:
-                        player.set_sources(list(self.last_sync_sources))
-                        if player.playlist.images:
-                            player.start()
-                        else:
-                            player.stop()
+                    player.stop()
+            return
+
+        # 各別螢幕模式
+        if "all" in self.players:
+            self.players["all"].stop()
+
+        for key, player in self.players.items():
+            if key == "all":
+                continue
+            if key in self.independent_keys:
+                # 使用者有為這個螢幕按過確認 → 用自己的來源
+                if player.playlist.images:
+                    player.start()
+                else:
+                    player.stop()
+            else:
+                # 尚未再確認 → 跟隨最後一次同步來源
+                if self.last_sync_sources:
+                    player.set_sources(list(self.last_sync_sources))
+                    if player.playlist.images:
+                        player.start()
                     else:
                         player.stop()
+                else:
+                    player.stop()
 
     def confirm_edit(self):
         sources = []
