@@ -95,6 +95,7 @@ class VideoWallpaper:
         self._proc: Optional[subprocess.Popen] = None
         self._current_path: Optional[str] = None
         self._host_hwnd: int = 0
+        self._ass_path: Optional[str] = None
 
     def is_playing(self) -> bool:
         return self._proc is not None and self._proc.poll() is None
@@ -111,12 +112,20 @@ class VideoWallpaper:
                 pass
             self._proc = None
         self._current_path = None
+
         if self._host_hwnd and HAS_WIN32:
             try:
                 win32gui.DestroyWindow(self._host_hwnd)
             except Exception:
                 pass
             self._host_hwnd = 0
+
+        if self._ass_path:
+            try:
+                Path(self._ass_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+            self._ass_path = None
 
     def _create_host_window(self, x: int, y: int, w: int, h: int) -> int:
         """在 WorkerW 下建一個全螢幕宿主，給 mpv --wid 使用"""
@@ -157,12 +166,49 @@ class VideoWallpaper:
             )
         return hwnd
 
+    def _make_ass_label(self, folder_name: str, file_name: str) -> Optional[str]:
+        import os
+        import tempfile
+
+        text = f"{folder_name}-{file_name}" if folder_name else file_name
+        for ch in ("{", "}", "\\"):
+            text = text.replace(ch, " ")
+
+        # PlayRes 用較大畫布；Alignment=9 右上
+        # BorderStyle=3 + BackColour 白 = 不透明白底；Primary 黑字
+        # ASS 顏色：&HAABBGGRR
+        content = f"""[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Label,Microsoft YaHei,10,&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,0,0,3,6,0,9,20,20,16,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,9:59:59.00,Label,,0,0,0,,{text}
+"""
+        try:
+            fd, ass_path = tempfile.mkstemp(suffix=".ass", prefix="uws_osd_")
+            os.close(fd)
+            Path(ass_path).write_text(content, encoding="utf-8-sig")
+            self._ass_path = ass_path
+            return ass_path
+        except Exception as e:
+            print(f"建立 ASS 失敗: {e}")
+            return None
+
     def play(
         self,
         video_path: str,
         screen_index: int = 0,
         loop: bool = True,
         geometry: Optional[Tuple[int, int, int, int]] = None,
+        show_label: bool = True,
     ) -> bool:
         exe = get_mpv_path()
         if not exe:
@@ -220,6 +266,24 @@ class VideoWallpaper:
             cmd.append("--loop-file=inf")
         else:
             cmd.append("--loop-file=no")
+
+        if show_label:
+            p = Path(path)
+            ass = self._make_ass_label(p.parent.name, p.name)
+            if ass:
+                cmd += [
+                    f"--sub-file={ass}",
+                    "--sid=1",
+                    "--sub-visibility=yes",
+                    # 關鍵：讓字幕畫在黑邊／整窗，而不是只在影片矩形內
+                    "--sub-use-margins=yes",
+                    "--sub-ass-force-margins=yes",
+                    "--sub-ass-override=force",
+                    "--sub-align-x=right",
+                    "--sub-align-y=top",
+                    "--sub-margin-x=16",
+                    "--sub-margin-y=12",
+                ]
 
         cmd.append(path)
 

@@ -790,45 +790,34 @@ class MainWindow(QMainWindow):
         self.players[self.current_edit_key].next()
 
     def restore_system_wallpaper(self):
-        """一鍵：停止所有輪播與影片，恢復 Windows 系統桌布"""
         reply = QMessageBox.question(
-            self,
-            "恢復系統桌布",
-            "將停止所有螢幕的輪播與影片，並恢復為 Windows 目前的系統桌布。\n確定？",
+            self, "恢復系統桌布",
+            "將停止所有輪播與影片，並恢復 Windows 系統桌布。確定？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        # 1. 停掉所有 ScreenPlayer（含 mpv）
         for p in self.players.values():
             try:
                 p.stop()
             except Exception:
                 pass
 
-        # 2. 清掉獨立標記，避免之後互斥邏輯又把舊來源拉起來
         self.independent_keys.clear()
-        self.last_sync_sources = []
 
-        # 3. 套用系統桌布
-        from utils.win32_helper import restore_system_wallpaper, get_system_wallpaper_path
-        ok = restore_system_wallpaper()
-        path = get_system_wallpaper_path()
-
-        if ok:
-            msg = "已停止輪播並恢復系統桌布。"
-            if path:
-                msg += f"\n路徑：{path}"
-            QMessageBox.information(self, "完成", msg)
-        else:
-            QMessageBox.warning(
-                self,
-                "提示",
-                "輪播已停止，但自動恢復桌布失敗。\n"
-                "請到「設定 → 個人化 → 背景」手動選一次桌布。",
-            )
+        from utils.win32_helper import set_wallpaper, get_system_wallpaper_path
+        # 優先用啟動時記住的路徑
+        path = self.config.get(
+            "original_wallpaper") or get_system_wallpaper_path()
+        if path:
+            from pathlib import Path
+            if Path(path).is_file():
+                set_wallpaper(path)
+                QMessageBox.information(self, "完成", "已恢復系統桌布。")
+                return
+        QMessageBox.warning(self, "提示", "找不到系統桌布檔案，請到系統設定手動還原。")
 
     # ===== 浮動工具列專用（對應各自螢幕）=====
     def _toolbar_prev(self, key: str):

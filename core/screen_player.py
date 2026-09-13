@@ -150,6 +150,7 @@ class ScreenPlayer(QObject):
                     screen_index=self._screen_index_0,
                     loop=loop,
                     geometry=self._geometry,
+                    show_label=True,
                 )
                 if ok:
                     self.wallpaper_changed.emit(path)

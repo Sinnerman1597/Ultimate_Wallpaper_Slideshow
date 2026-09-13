@@ -83,6 +83,8 @@ class WallpaperEngine:
             x = screen_width - text_w - margin
             y = margin
 
+            folder_name = Path(image_path).parent.name
+            filename = f"{folder_name}-{Path(image_path).name}"
             # 直接黑字，沒有黑底
             draw.text((x, y), filename, font=font, fill=(0, 0, 0))
 

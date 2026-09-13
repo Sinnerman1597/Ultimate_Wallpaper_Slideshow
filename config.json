@@ -13,6 +13,10 @@
       {
         "path": "D:/影/J/NSFW/BJ/小仙雲/1",
         "recursive": true
+      },
+      {
+        "path": "D:/圖/J/Eva",
+        "recursive": true
       }
     ],
     "images": [],
@@ -58,6 +62,18 @@
         {
           "path": "D:/影/J/NSFW/BJ/小仙雲/1",
           "recursive": true
+        },
+        {
+          "path": "D:/圖/J/Eva",
+          "recursive": false
+        },
+        {
+          "path": "D:\\圖\\J\\Eva\\1",
+          "recursive": true
+        },
+        {
+          "path": "D:\\圖\\J\\Eva\\3",
+          "recursive": true
         }
       ],
       "interval": "10秒",
@@ -66,19 +82,15 @@
     "2": {
       "sources": [
         {
-          "path": "D:/影/J/NSFW/BJ/yum_707",
-          "recursive": true
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/小仙雲",
+          "path": "D:/圖/J/Eva",
           "recursive": false
         },
         {
-          "path": "D:\\影\\J\\NSFW\\BJ\\小仙雲\\1",
+          "path": "D:\\圖\\J\\Eva\\1",
           "recursive": true
         },
         {
-          "path": "D:/影/J/NSFW/BJ/小仙雲/1",
+          "path": "D:\\圖\\J\\Eva\\3",
           "recursive": true
         }
       ],
