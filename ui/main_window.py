@@ -22,6 +22,8 @@ class MainWindow(QMainWindow):
 
         self.current_edit_key = "all"      # 目前正在設定的螢幕
         self.is_editing = False
+        self.last_sync_sources = []      # 最後一次「所有螢幕同步」的來源
+        self.independent_keys = set()    # 同步之後，有「再次確認過」的各別螢幕
         self._tree_check_guard = False
 
         # 每個螢幕一個獨立播放器
@@ -481,24 +483,48 @@ class MainWindow(QMainWindow):
                 if child.childCount() == 0:
                     self._load_subfolders(child)
 
-    def _apply_mutex(self, active_key: str):
-        if active_key == "all":
-            for key, player in self.players.items():
-                if key == "all":
-                    if player.playlist.images:
-                        player.start()
-                else:
-                    player.stop()
-        else:
+        def _apply_mutex(self, active_key: str):
+            """
+            active_key == "all"：只跑同步，各別螢幕停止，並清空「已獨立」標記。
+            active_key 為 "1"/"2"...：停止同步；
+            - 在 independent_keys 裡的螢幕用自己的 sources
+            - 其餘各別螢幕改用 last_sync_sources（維持同步時的內容）
+            """
+            if active_key == "all":
+                self.independent_keys.clear()
+                for key, player in self.players.items():
+                    if key == "all":
+                        if player.playlist.images:
+                            player.start()
+                        else:
+                            player.stop()
+                    else:
+                        player.stop()
+                return
+
+            # 各別螢幕模式
             if "all" in self.players:
                 self.players["all"].stop()
+
             for key, player in self.players.items():
                 if key == "all":
                     continue
-                if player.playlist.images:
-                    player.start()
+                if key in self.independent_keys:
+                    # 使用者有為這個螢幕按過確認 → 用自己的來源
+                    if player.playlist.images:
+                        player.start()
+                    else:
+                        player.stop()
                 else:
-                    player.stop()
+                    # 尚未再確認 → 跟隨最後一次同步來源
+                    if self.last_sync_sources:
+                        player.set_sources(list(self.last_sync_sources))
+                        if player.playlist.images:
+                            player.start()
+                        else:
+                            player.stop()
+                    else:
+                        player.stop()
 
     def confirm_edit(self):
         sources = []
@@ -560,6 +586,12 @@ class MainWindow(QMainWindow):
         player.set_sources(sources)
         player.set_interval(self.combo_interval.currentText())
         player.set_mode(self.combo_mode.currentText())
+
+        if self.current_edit_key == "all":
+            self.last_sync_sources = [dict(s) for s in sources]
+            self.independent_keys.clear()
+        else:
+            self.independent_keys.add(self.current_edit_key)
 
         # 互斥：同步 vs 各別螢幕
         self._apply_mutex(self.current_edit_key)
