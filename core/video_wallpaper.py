@@ -1,6 +1,7 @@
-"""mpv 影片桌布：置底 + 滑鼠穿透（不使用 WorkerW，避免工作列異常）"""
+"""mpv 影片桌布：掛到 WorkerW + 滑鼠穿透 + 禁止操作"""
 from __future__ import annotations
 
+import ctypes
 import subprocess
 import time
 from pathlib import Path
@@ -12,51 +13,77 @@ try:
     import win32gui
     import win32con
     import win32api
+    import win32process
     HAS_WIN32 = True
 except ImportError:
     HAS_WIN32 = False
 
+user_WNDPROC = ctypes.WINFUNCTYPE(
+    ctypes.c_long, ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p
+)
+
+_cached_workerw: int | None = None
+
+
+# 全模組只找一次 WorkerW，避免每次播影片都送 0x052C 弄到工作列
+_cached_workerw: int | None = None
+
+
+def _find_workerw() -> int:
+    """取得桌面 WorkerW；成功後快取，之後直接重用"""
+    global _cached_workerw
+
+    if not HAS_WIN32:
+        return 0
+
+    # 已有快取且視窗還在
+    if _cached_workerw:
+        try:
+            if win32gui.IsWindow(_cached_workerw):
+                return _cached_workerw
+        except Exception:
+            pass
+        _cached_workerw = None
+
+    progman = win32gui.FindWindow("Progman", None)
+    if not progman:
+        return 0
+
+    # 觸發系統建立用來放桌布的 WorkerW（只在第一次找時送）
+    result = ctypes.c_ulong()
+    ctypes.windll.user32.SendMessageTimeoutW(
+        progman, 0x052C, 0, 0, 0, 1000, ctypes.byref(result)
+    )
+
+    workerw = 0
+
+    def enum_handler(hwnd, _):
+        nonlocal workerw
+        if win32gui.FindWindowEx(hwnd, 0, "SHELLDLL_DefView", None):
+            workerw = win32gui.FindWindowEx(0, hwnd, "WorkerW", None)
+        return True
+
+    win32gui.EnumWindows(enum_handler, None)
+
+    _cached_workerw = workerw or 0
+    return _cached_workerw
+
 
 def _make_click_through(hwnd: int):
-    if not hwnd or not HAS_WIN32:
+    """滑鼠穿透，不擋桌面圖示與其他視窗操作"""
+    if not hwnd:
         return
-    try:
-        style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
-        style |= (
-            win32con.WS_EX_LAYERED
-            | win32con.WS_EX_TRANSPARENT
-            | win32con.WS_EX_NOACTIVATE
-            | win32con.WS_EX_TOOLWINDOW
-        )
-        style &= ~win32con.WS_EX_APPWINDOW
-        win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, style)
-    except Exception:
-        pass
-
-
-def _make_click_through_tree(hwnd: int):
-    """host 與底下所有子視窗都穿透（mpv 繪製層常在子視窗）"""
-    if not hwnd or not HAS_WIN32:
-        return
-    _make_click_through(hwnd)
-    try:
-        child = win32gui.GetWindow(hwnd, win32con.GW_CHILD)
-        while child:
-            _make_click_through_tree(child)
-            child = win32gui.GetWindow(child, win32con.GW_HWNDNEXT)
-    except Exception:
-        pass
-
-
-def _pin_bottom(hwnd: int, x: int, y: int, w: int, h: int):
-    if not hwnd or not HAS_WIN32:
-        return
+    style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+    style |= win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT | win32con.WS_EX_NOACTIVATE
+    style &= ~win32con.WS_EX_APPWINDOW
+    win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, style)
+    # 不搶啟用
     try:
         win32gui.SetWindowPos(
             hwnd,
             win32con.HWND_BOTTOM,
-            x, y, w, h,
-            win32con.SWP_SHOWWINDOW | win32con.SWP_NOACTIVATE,
+            0, 0, 0, 0,
+            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE,
         )
     except Exception:
         pass
@@ -68,7 +95,6 @@ class VideoWallpaper:
         self._proc: Optional[subprocess.Popen] = None
         self._current_path: Optional[str] = None
         self._host_hwnd: int = 0
-        self._geo: Tuple[int, int, int, int] = (0, 0, 1920, 1080)
 
     def is_playing(self) -> bool:
         return self._proc is not None and self._proc.poll() is None
@@ -93,35 +119,42 @@ class VideoWallpaper:
             self._host_hwnd = 0
 
     def _create_host_window(self, x: int, y: int, w: int, h: int) -> int:
+        """在 WorkerW 下建一個全螢幕宿主，給 mpv --wid 使用"""
         if not HAS_WIN32:
             return 0
+        worker = _find_workerw()
+        parent = worker if worker else 0
 
         wc = win32gui.WNDCLASS()
         wc.lpfnWndProc = win32gui.DefWindowProc
-        wc.lpszClassName = f"UWSVideoHost_{self.screen_key or 'x'}"
+        wc.lpszClassName = "UWSVideoHost"
         wc.hInstance = win32api.GetModuleHandle(None)
         try:
             win32gui.RegisterClass(wc)
         except Exception:
-            pass
+            pass  # 可能已註冊
+
+        style = win32con.WS_POPUP | win32con.WS_VISIBLE | win32con.WS_CHILD
+        if not parent:
+            style = win32con.WS_POPUP | win32con.WS_VISIBLE
 
         hwnd = win32gui.CreateWindowEx(
-            win32con.WS_EX_NOACTIVATE
-            | win32con.WS_EX_TOOLWINDOW
-            | win32con.WS_EX_LAYERED
-            | win32con.WS_EX_TRANSPARENT,
-            wc.lpszClassName,
+            win32con.WS_EX_NOACTIVATE | win32con.WS_EX_TOOLWINDOW,
+            "UWSVideoHost",
             "",
-            win32con.WS_POPUP | win32con.WS_VISIBLE,
+            style,
             x, y, w, h,
-            0,
+            parent,
             0,
             wc.hInstance,
             None,
         )
         if hwnd:
             _make_click_through(hwnd)
-            _pin_bottom(hwnd, x, y, w, h)
+            win32gui.SetWindowPos(
+                hwnd, win32con.HWND_BOTTOM, x, y, w, h,
+                win32con.SWP_SHOWWINDOW | win32con.SWP_NOACTIVATE,
+            )
         return hwnd
 
     def play(
@@ -146,11 +179,11 @@ class VideoWallpaper:
 
         self.stop()
 
+        # 幾何：未傳入時用虛擬桌面估計（MainWindow 可傳 screen.geometry）
         if geometry:
             x, y, w, h = geometry
         else:
             x, y, w, h = 0, 0, 1920, 1080
-        self._geo = (x, y, w, h)
 
         host = self._create_host_window(x, y, w, h)
         self._host_hwnd = host
@@ -174,6 +207,7 @@ class VideoWallpaper:
         ]
 
         if host:
+            # 嵌進宿主視窗 = 桌布層、不可當一般播放器操作
             cmd.append(f"--wid={host}")
         else:
             cmd += [
@@ -201,11 +235,9 @@ class VideoWallpaper:
             self.stop()
             return False
 
-        # mpv 建立子視窗需要一點時間，再設穿透與置底
+        # 再設一次穿透（有些環境 --wid 後會變）
         if host:
-            for delay in (0.2, 0.5, 1.0):
-                time.sleep(delay)
-                _make_click_through_tree(host)
-                _pin_bottom(host, x, y, w, h)
+            time.sleep(0.3)
+            _make_click_through(host)
 
         return True
