@@ -11,7 +11,7 @@ class ScreenPlayer(QObject):
     """單一螢幕的獨立播放器"""
     wallpaper_changed = Signal(str)  # 發出目前桌布路徑（給外部參考）
 
-    def __init__(self, screen_key: str, screen_mode_text: str, engine, parent=None):
+    def __init__(self, screen_key: str, screen_mode_text: str, engine, video_wall, parent=None):
         super().__init__(parent)
         self.screen_key = screen_key          # "all" / "1" / "2" ...
         self.screen_mode_text = screen_mode_text  # "所有螢幕同步" / "螢幕1" ...
@@ -24,6 +24,9 @@ class ScreenPlayer(QObject):
         self.last_numeric_interval = "10秒"  # 「播完為止」時圖片用的上一次秒數
         self.mode_text = "順序"
         self.is_paused = False
+        self.video_wall = video_wall  # 共用一個 VideoWallpaper 實例（4-2 單螢幕）
+        self._screen_index_0 = 0      # 0-based，稍後由 MainWindow 設定
+        self._geometry = None  # (x, y, w, h)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.next)
@@ -81,37 +84,49 @@ class ScreenPlayer(QObject):
         path = self.playlist.current()
         if not path:
             return None
-        # 4-1：影片先略過，避免當圖片載入；4-2 再接 mpv
+
         if self.is_video_path(path):
-            print(f"[4-1] 清單含影片（稍後播放）: {path}")
-            # 暫時自動跳到下一筆非影片（若全是影片就不動）
-            for _ in range(len(self.playlist.images)):
-                nxt = self.playlist.next()
-                if nxt and not self.is_video_path(nxt):
-                    path = nxt
-                    break
-            else:
-                return None
+            # 影片：停掉靜態桌布搶畫面，改 mpv
+            loop = self.interval_text != "播完為止(僅影片)"
+            if self.video_wall:
+                ok = self.video_wall.play(
+                    path,
+                    screen_index=self._screen_index_0,
+                    loop=loop,
+                    geometry=self._geometry,
+                )
+                if ok:
+                    self.wallpaper_changed.emit(path)
+                    # 播完為止：先不停 timer，4-3 再改為等 mpv 結束
+                    if not loop:
+                        # 暫時用片長未知 → 仍靠使用者切換；4-3 用進程結束事件
+                        pass
+                    return path
+            print(f"影片播放失敗: {path}")
+            return None
+
+        # 圖片：先停 mpv，再設靜態桌布
+        if self.video_wall:
+            self.video_wall.stop()
+        self.engine.apply_smart_fill(path, screen_mode=self.screen_mode_text)
+        self.wallpaper_changed.emit(path)
+        return path
 
     def next(self):
         path = self.playlist.next()
-        if path:
-            self.engine.apply_smart_fill(
-                path, screen_mode=self.screen_mode_text)
-            self.wallpaper_changed.emit(path)
-            self.restart_timer()
-            return path
-        return None
+        if not path:
+            return None
+        result = self.apply_current()
+        self.restart_timer()
+        return result
 
     def prev(self):
         path = self.playlist.prev()
-        if path:
-            self.engine.apply_smart_fill(
-                path, screen_mode=self.screen_mode_text)
-            self.wallpaper_changed.emit(path)
-            self.restart_timer()
-            return path
-        return None
+        if not path:
+            return None
+        result = self.apply_current()
+        self.restart_timer()
+        return result
 
     def restart_timer(self):
         self.timer.stop()
@@ -141,6 +156,8 @@ class ScreenPlayer(QObject):
     def stop(self):
         self.timer.stop()
         self.is_paused = True
+        if self.video_wall:
+            self.video_wall.stop()
 
     def delete_current(self):
         current = self.playlist.current()

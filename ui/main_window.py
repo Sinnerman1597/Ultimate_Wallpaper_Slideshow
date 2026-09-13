@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer
 from core.screen_player import ScreenPlayer
+from core.video_wallpaper import VideoWallpaper
 
 
 class MainWindow(QMainWindow):
@@ -26,6 +27,7 @@ class MainWindow(QMainWindow):
         self.independent_keys = set()    # 同步之後，有「再次確認過」的各別螢幕
         self._tree_check_guard = False
 
+        self.video_wall = VideoWallpaper()
         # 每個螢幕一個獨立播放器
         self._create_players()
 
@@ -80,18 +82,32 @@ class MainWindow(QMainWindow):
             print("警告: 找不到 mpv/mpv.exe，影片桌布將無法使用")
 
     def _create_players(self):
-        # 依螢幕左到右排序
         screens = sorted(QApplication.screens(),
                          key=lambda s: s.geometry().x())
-        self.ordered_screens = screens          # 存起來給工具列用
+        self.ordered_screens = screens
         self.screen_count = len(screens)
 
         self.players = {}
-        self.players["all"] = ScreenPlayer("all", "所有螢幕同步", self.engine)
+        self.players["all"] = ScreenPlayer(
+            "all", "所有螢幕同步", self.engine, video_wall=self.video_wall
+        )
+        self.players["all"]._screen_index_0 = 0  # 同步先用左／主螢幕，4-4 再拆
 
         for i, screen in enumerate(screens, start=1):
             key = str(i)
-            self.players[key] = ScreenPlayer(key, f"螢幕{i}", self.engine)
+            sp = ScreenPlayer(
+                key, f"螢幕{i}", self.engine, video_wall=self.video_wall)
+            sp._screen_index_0 = i - 1
+            g = screen.geometry()
+            sp._geometry = (g.x(), g.y(), g.width(), g.height())
+            self.players[key] = sp
+
+        # all：先用主螢幕幾何
+        primary = QApplication.primaryScreen().geometry()
+        self.players["all"]._screen_index_0 = 0
+        self.players["all"]._geometry = (
+            primary.x(), primary.y(), primary.width(), primary.height()
+        )
 
     def _setup_ui(self):
         central = QWidget()
@@ -743,7 +759,9 @@ class MainWindow(QMainWindow):
                 self.combo_mode.blockSignals(False)
 
     def closeEvent(self, event):
-        """關閉視窗時存檔"""
+        """關閉視窗時存檔並停mpv"""
+        if hasattr(self, "video_wall"):
+            self.video_wall.stop()
         self._save_all_config()
         super().closeEvent(event)
 
