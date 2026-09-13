@@ -20,12 +20,41 @@
   },
   "players": {
     "all": {
-      "sources": [],
+      "sources": [
+        {
+          "path": "D:/影/J/NSFW/BJ/yum_707",
+          "recursive": true
+        },
+        {
+          "path": "D:/影/J/NSFW/BJ/小仙雲",
+          "recursive": false
+        },
+        {
+          "path": "D:\\影\\J\\NSFW\\BJ\\小仙雲\\1",
+          "recursive": true
+        },
+        {
+          "path": "D:/影/J/NSFW/BJ/小仙雲/1",
+          "recursive": true
+        }
+      ],
       "interval": "播完為止(僅影片)",
       "mode": "隨機"
     },
     "1": {
       "sources": [
+        {
+          "path": "D:/影/J/NSFW/BJ/yum_707",
+          "recursive": true
+        },
+        {
+          "path": "D:/影/J/NSFW/BJ/小仙雲",
+          "recursive": false
+        },
+        {
+          "path": "D:\\影\\J\\NSFW\\BJ\\小仙雲\\1",
+          "recursive": true
+        },
         {
           "path": "D:/影/J/NSFW/BJ/小仙雲/1",
           "recursive": true
@@ -36,6 +65,18 @@
     },
     "2": {
       "sources": [
+        {
+          "path": "D:/影/J/NSFW/BJ/yum_707",
+          "recursive": true
+        },
+        {
+          "path": "D:/影/J/NSFW/BJ/小仙雲",
+          "recursive": false
+        },
+        {
+          "path": "D:\\影\\J\\NSFW\\BJ\\小仙雲\\1",
+          "recursive": true
+        },
         {
           "path": "D:/影/J/NSFW/BJ/小仙雲/1",
           "recursive": true
