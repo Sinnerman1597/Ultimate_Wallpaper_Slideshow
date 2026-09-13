@@ -55,9 +55,17 @@ class MainWindow(QMainWindow):
 
         # 從 config 還原來源列表與各螢幕設定
         self._restore_from_config()
-        # 啟動所有播放器
-        for player in self.players.values():
-            player.start()
+        # 還原後依「誰有來源」決定互斥啟動
+        all_player = self.players.get("all")
+        all_has = all_player and bool(all_player.playlist.images)
+        any_single = any(
+            k != "all" and bool(p.playlist.images)
+            for k, p in self.players.items()
+        )
+        if any_single:
+            self._apply_mutex("1")   # 走「各別螢幕」分支即可
+        elif self.players.get("all") and self.players["all"].playlist.images:
+            self._apply_mutex("all")
 
     def _create_players(self):
         # 依螢幕左到右排序
@@ -473,6 +481,25 @@ class MainWindow(QMainWindow):
                 if child.childCount() == 0:
                     self._load_subfolders(child)
 
+    def _apply_mutex(self, active_key: str):
+        if active_key == "all":
+            for key, player in self.players.items():
+                if key == "all":
+                    if player.playlist.images:
+                        player.start()
+                else:
+                    player.stop()
+        else:
+            if "all" in self.players:
+                self.players["all"].stop()
+            for key, player in self.players.items():
+                if key == "all":
+                    continue
+                if player.playlist.images:
+                    player.start()
+                else:
+                    player.stop()
+
     def confirm_edit(self):
         sources = []
 
@@ -533,7 +560,9 @@ class MainWindow(QMainWindow):
         player.set_sources(sources)
         player.set_interval(self.combo_interval.currentText())
         player.set_mode(self.combo_mode.currentText())
-        player.start()
+
+        # 互斥：同步 vs 各別螢幕
+        self._apply_mutex(self.current_edit_key)
 
         self.is_editing = False
         self.btn_edit.setEnabled(True)

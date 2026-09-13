@@ -47,16 +47,24 @@ class ScreenPlayer(QObject):
             p = Path(src["path"])
             recursive = src.get("recursive", False)
             if p.is_dir():
+                found = []
                 if recursive:
                     for f in p.rglob("*"):
                         if f.is_file() and f.suffix.lower() in IMAGE_EXTS:
-                            files.append(str(f))
+                            found.append(str(f))
                 else:
                     for f in p.iterdir():
                         if f.is_file() and f.suffix.lower() in IMAGE_EXTS:
-                            files.append(str(f))
+                            found.append(str(f))
+                found.sort()  # 同一資料夾內依路徑排序
+                files.extend(found)
             elif p.is_file() and p.suffix.lower() in IMAGE_EXTS:
                 files.append(str(p))
+            # 影片之後第四階段再加入播放；先可收進 sources 但不進圖片 playlist
+            elif p.is_file() and p.suffix.lower() in VIDEO_EXTS:
+                # 暫不加入 images 清單，避免引擎當圖片開
+                pass
+
         self.playlist.set_images(files)
         mode = "random" if self.mode_text == "隨機" else "sequential"
         self.playlist.set_mode(mode)
