@@ -1,5 +1,5 @@
 {
-  "last_edit_key": "2",
+  "last_edit_key": "1",
   "ui_sources": {
     "folders": [
       {
@@ -69,24 +69,7 @@
       "mode": "順序"
     },
     "2": {
-      "sources": [
-        {
-          "path": "D:/影/J/NSFW/BJ/#网易cc #小吴同学 电报搜@rewudingzh.mp4",
-          "recursive": false
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/yum_707/#yum_707 #玉米 艺校活泼美女 最新内容合集 sosoe.mp4",
-          "recursive": false
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/yum_707/1 (15).mp4",
-          "recursive": false
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/yum_707/1.mp4",
-          "recursive": false
-        }
-      ],
+      "sources": [],
       "interval": "播完為止(僅影片)",
       "mode": "隨機"
     }

@@ -27,7 +27,6 @@ class MainWindow(QMainWindow):
         self.independent_keys = set()    # 同步之後，有「再次確認過」的各別螢幕
         self._tree_check_guard = False
 
-        self.video_wall = VideoWallpaper()
         # 每個螢幕一個獨立播放器
         self._create_players()
 
@@ -88,15 +87,29 @@ class MainWindow(QMainWindow):
         self.screen_count = len(screens)
 
         self.players = {}
+
+        # ----- 所有螢幕同步：稍後 play 時會對每個螢幕開 mpv -----
         self.players["all"] = ScreenPlayer(
-            "all", "所有螢幕同步", self.engine, video_wall=self.video_wall
+            "all", "所有螢幕同步", self.engine,
+            video_wall=None,  # all 用 manager 邏輯
         )
-        self.players["all"]._screen_index_0 = 0  # 同步先用左／主螢幕，4-4 再拆
+        self.players["all"]._is_all = True
+        self.players["all"]._ordered_geometries = []
+        for screen in screens:
+            g = screen.geometry()
+            self.players["all"]._ordered_geometries.append(
+                (g.x(), g.y(), g.width(), g.height())
+            )
+        # all 專用：多個 VideoWallpaper
+        self.players["all"]._video_walls = [
+            VideoWallpaper(screen_key=f"all-{i}") for i in range(len(screens))
+        ]
 
         for i, screen in enumerate(screens, start=1):
             key = str(i)
-            sp = ScreenPlayer(
-                key, f"螢幕{i}", self.engine, video_wall=self.video_wall)
+            vw = VideoWallpaper(screen_key=key)
+            sp = ScreenPlayer(key, f"螢幕{i}", self.engine, video_wall=vw)
+            sp._is_all = False
             sp._screen_index_0 = i - 1
             g = screen.geometry()
             sp._geometry = (g.x(), g.y(), g.width(), g.height())
@@ -759,9 +772,12 @@ class MainWindow(QMainWindow):
                 self.combo_mode.blockSignals(False)
 
     def closeEvent(self, event):
-        """關閉視窗時存檔並停mpv"""
-        if hasattr(self, "video_wall"):
-            self.video_wall.stop()
+        for p in self.players.values():
+            if getattr(p, "_is_all", False):
+                for vw in getattr(p, "_video_walls", []):
+                    vw.stop()
+            elif p.video_wall:
+                p.video_wall.stop()
         self._save_all_config()
         super().closeEvent(event)
 

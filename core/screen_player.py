@@ -25,6 +25,9 @@ class ScreenPlayer(QObject):
         self.mode_text = "順序"
         self.is_paused = False
         self.video_wall = video_wall  # 共用一個 VideoWallpaper 實例（4-2 單螢幕）
+        self._is_all = False
+        self._video_walls = []          # 僅 all 使用
+        self._ordered_geometries = []   # 僅 all 使用
         self._screen_index_0 = 0      # 0-based，稍後由 MainWindow 設定
         self._geometry = None  # (x, y, w, h)
 
@@ -86,8 +89,21 @@ class ScreenPlayer(QObject):
             return None
 
         if self.is_video_path(path):
-            # 影片：停掉靜態桌布搶畫面，改 mpv
             loop = self.interval_text != "播完為止(僅影片)"
+            if getattr(self, "_is_all", False) and self._video_walls:
+                # 同步：每個螢幕各播同一支影片
+                ok_any = False
+                for idx, vw in enumerate(self._video_walls):
+                    geo = None
+                    if idx < len(self._ordered_geometries):
+                        geo = self._ordered_geometries[idx]
+                    if vw.play(path, screen_index=idx, loop=loop, geometry=geo):
+                        ok_any = True
+                if ok_any:
+                    self.wallpaper_changed.emit(path)
+                    return path
+                return None
+
             if self.video_wall:
                 ok = self.video_wall.play(
                     path,
@@ -97,17 +113,17 @@ class ScreenPlayer(QObject):
                 )
                 if ok:
                     self.wallpaper_changed.emit(path)
-                    # 播完為止：先不停 timer，4-3 再改為等 mpv 結束
-                    if not loop:
-                        # 暫時用片長未知 → 仍靠使用者切換；4-3 用進程結束事件
-                        pass
                     return path
             print(f"影片播放失敗: {path}")
             return None
 
         # 圖片：先停 mpv，再設靜態桌布
-        if self.video_wall:
+        if getattr(self, "_is_all", False):
+            for vw in getattr(self, "_video_walls", []):
+                vw.stop()
+        elif self.video_wall:
             self.video_wall.stop()
+
         self.engine.apply_smart_fill(path, screen_mode=self.screen_mode_text)
         self.wallpaper_changed.emit(path)
         return path
@@ -156,7 +172,10 @@ class ScreenPlayer(QObject):
     def stop(self):
         self.timer.stop()
         self.is_paused = True
-        if self.video_wall:
+        if getattr(self, "_is_all", False):
+            for vw in getattr(self, "_video_walls", []):
+                vw.stop()
+        elif self.video_wall:
             self.video_wall.stop()
 
     def delete_current(self):
