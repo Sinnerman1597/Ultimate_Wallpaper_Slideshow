@@ -3,25 +3,20 @@
   "ui_sources": {
     "folders": [
       {
-        "path": "D:/圖/J/Eva",
+        "path": "D:/影/J/NSFW/BJ/yum_707",
         "recursive": true
       },
       {
-        "path": "D:/圖/J/月希",
+        "path": "D:/影/J/NSFW/BJ/小仙雲",
         "recursive": true
       },
       {
-        "path": "D:/圖/J/Pic",
+        "path": "D:/影/J/NSFW/BJ/小仙雲/1",
         "recursive": true
       }
     ],
     "images": [],
-    "videos": [
-      "D:/影/J/NSFW/BJ/#网易cc #小吴同学 电报搜@rewudingzh.mp4",
-      "D:/影/J/NSFW/BJ/yum_707/#yum_707 #玉米 艺校活泼美女 最新内容合集 sosoe.mp4",
-      "D:/影/J/NSFW/BJ/yum_707/1 (15).mp4",
-      "D:/影/J/NSFW/BJ/yum_707/1.mp4"
-    ]
+    "videos": []
   },
   "players": {
     "all": {
@@ -32,29 +27,21 @@
     "1": {
       "sources": [
         {
-          "path": "D:\\圖\\J\\Eva\\3",
+          "path": "D:/影/J/NSFW/BJ/小仙雲/1",
           "recursive": true
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/yum_707/1.mp4",
-          "recursive": false
         }
       ],
-      "interval": "播完為止(僅影片)",
-      "mode": "順序"
+      "interval": "10秒",
+      "mode": "隨機"
     },
     "2": {
       "sources": [
         {
-          "path": "D:\\圖\\J\\Eva\\3",
+          "path": "D:/影/J/NSFW/BJ/小仙雲/1",
           "recursive": true
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/yum_707/1.mp4",
-          "recursive": false
         }
       ],
-      "interval": "播完為止(僅影片)",
+      "interval": "10秒",
       "mode": "隨機"
     }
   },

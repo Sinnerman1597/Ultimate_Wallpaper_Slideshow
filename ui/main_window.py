@@ -773,11 +773,10 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         for p in self.players.values():
-            if getattr(p, "_is_all", False):
-                for vw in getattr(p, "_video_walls", []):
-                    vw.stop()
-            elif p.video_wall:
-                p.video_wall.stop()
+            try:
+                p.stop()  # 會停 timer + 該 player 的 mpv
+            except Exception:
+                pass
         self._save_all_config()
         super().closeEvent(event)
 
@@ -800,14 +799,12 @@ class MainWindow(QMainWindow):
         player = self.players.get(key)
         if not player:
             return
-        if player.timer.isActive():
-            # 目前正在自動換 → 改為暫停
-            player.stop()
-            toolbar.set_paused(True)   # 顯示 ▶
+        if player.is_paused:
+            player.resume_slideshow()
+            toolbar.set_paused(False)  # ⏸ 可再暫停
         else:
-            # 目前暫停中 → 恢復自動換
-            player.restart_timer()
-            toolbar.set_paused(False)  # 顯示 ⏸
+            player.pause_slideshow()
+            toolbar.set_paused(True)   # ▶ 可恢復
 
     def _toolbar_delete(self, key: str):
         if key in self.players:

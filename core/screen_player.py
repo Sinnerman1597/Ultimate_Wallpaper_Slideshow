@@ -221,6 +221,27 @@ class ScreenPlayer(QObject):
             if not self._wait_video_end:
                 self.restart_timer()
 
+    def pause_slideshow(self):
+        """只暫停輪播，不關掉目前影片／圖片"""
+        self.timer.stop()
+        self._stop_end_watch()
+        self.is_paused = True
+
+    def resume_slideshow(self):
+        """恢復輪播"""
+        self.is_paused = False
+        path = self.playlist.current()
+        if not path:
+            return
+        # 影片 + 播完為止：若還在播就繼續等結束；已結束則下一張
+        if self.is_video_path(path) and self.interval_text == "播完為止(僅影片)":
+            if self._videos_still_playing():
+                self._start_end_watch()
+            else:
+                self.next()
+            return
+        self.restart_timer()
+
     def stop(self):
         self._stop_end_watch()
         self.timer.stop()
@@ -235,6 +256,16 @@ class ScreenPlayer(QObject):
         current = self.playlist.current()
         if not current:
             return False
+
+        # 先停影片，避免檔案鎖定
+        if self.is_video_path(current):
+            if getattr(self, "_is_all", False):
+                for vw in getattr(self, "_video_walls", []):
+                    vw.stop()
+            elif self.video_wall:
+                self.video_wall.stop()
+            self._stop_end_watch()
+
         from send2trash import send2trash
         try:
             send2trash(current)
