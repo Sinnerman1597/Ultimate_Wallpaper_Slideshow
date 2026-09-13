@@ -73,6 +73,12 @@ class MainWindow(QMainWindow):
         elif self.players.get("all") and self.players["all"].playlist.images:
             self._apply_mutex("all")
 
+        from utils.mpv_helper import mpv_available, get_mpv_path, mpv_version
+        if mpv_available():
+            print(f"mpv 就緒: {get_mpv_path()} | {mpv_version()}")
+        else:
+            print("警告: 找不到 mpv/mpv.exe，影片桌布將無法使用")
+
     def _create_players(self):
         # 依螢幕左到右排序
         screens = sorted(QApplication.screens(),
@@ -181,7 +187,8 @@ class MainWindow(QMainWindow):
         self.combo_interval = QComboBox()
         self.combo_interval.addItems([
             "10秒", "15秒", "30秒", "1分鐘", "5分鐘",
-            "10分鐘", "15分鐘", "30分鐘", "不限時間"
+            "10分鐘", "15分鐘", "30分鐘", "不限時間",
+            "播完為止(僅影片)",
         ])
         self.combo_interval.setCurrentText("10秒")
         time_layout.addWidget(self.combo_interval)
@@ -263,9 +270,18 @@ class MainWindow(QMainWindow):
 
     def _update_lock_label(self):
         if self.current_edit_key == "all":
-            self.lbl_lock_status.setText("目前設定：所有螢幕同步")
+            base = "目前設定：所有螢幕同步"
         else:
-            self.lbl_lock_status.setText(f"目前設定：螢幕{self.current_edit_key}")
+            base = f"目前設定：螢幕{self.current_edit_key}"
+
+        player = self.players.get(self.current_edit_key)
+        extra = ""
+        if player and player.interval_text == "播完為止(僅影片)":
+            # 圖片實際使用的秒數（上一次一般週期）
+            sec_text = getattr(player, "last_numeric_interval", None) or "10秒"
+            extra = f"，圖片更新週期為{sec_text}"
+
+        self.lbl_lock_status.setText(base + extra)
 
     def start_edit(self):
         self.is_editing = True
@@ -301,6 +317,7 @@ class MainWindow(QMainWindow):
             player = self.players[self.current_edit_key]
             player.set_interval(text)
             self._save_all_config()
+        self._update_lock_label()
 
     def on_mode_changed(self, text):
         if not self.is_editing:
@@ -603,6 +620,7 @@ class MainWindow(QMainWindow):
             self.independent_keys.add(self.current_edit_key)
 
         self._apply_mutex(self.current_edit_key)
+        self._update_lock_label()
 
         self.is_editing = False
         self.btn_edit.setEnabled(True)

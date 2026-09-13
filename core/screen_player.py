@@ -21,11 +21,16 @@ class ScreenPlayer(QObject):
         # [{"path": str, "recursive": bool}, ...]
         self.sources: List[dict] = []
         self.interval_text = "10秒"
+        self.last_numeric_interval = "10秒"  # 「播完為止」時圖片用的上一次秒數
         self.mode_text = "順序"
         self.is_paused = False
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.next)
+
+    @staticmethod
+    def is_video_path(path: str) -> bool:
+        return Path(path).suffix.lower() in VIDEO_EXTS
 
     def set_sources(self, sources: List[dict]):
         """sources: [{"path": "...", "recursive": True/False}, ...]"""
@@ -34,6 +39,9 @@ class ScreenPlayer(QObject):
 
     def set_interval(self, interval_text: str):
         self.interval_text = interval_text
+        # 只有一般秒數才更新「上一次秒數」
+        if interval_text not in ("不限時間", "播完為止(僅影片)"):
+            self.last_numeric_interval = interval_text
         self.restart_timer()
 
     def set_mode(self, mode_text: str):
@@ -49,21 +57,21 @@ class ScreenPlayer(QObject):
             if p.is_dir():
                 found = []
                 if recursive:
-                    for f in p.rglob("*"):
-                        if f.is_file() and f.suffix.lower() in IMAGE_EXTS:
-                            found.append(str(f))
+                    iterator = p.rglob("*")
                 else:
-                    for f in p.iterdir():
-                        if f.is_file() and f.suffix.lower() in IMAGE_EXTS:
-                            found.append(str(f))
-                found.sort()  # 同一資料夾內依路徑排序
+                    iterator = p.iterdir()
+                for f in iterator:
+                    if not f.is_file():
+                        continue
+                    ext = f.suffix.lower()
+                    if ext in IMAGE_EXTS or ext in VIDEO_EXTS:
+                        found.append(str(f))
+                found.sort()
                 files.extend(found)
-            elif p.is_file() and p.suffix.lower() in IMAGE_EXTS:
-                files.append(str(p))
-            # 影片之後第四階段再加入播放；先可收進 sources 但不進圖片 playlist
-            elif p.is_file() and p.suffix.lower() in VIDEO_EXTS:
-                # 暫不加入 images 清單，避免引擎當圖片開
-                pass
+            elif p.is_file():
+                ext = p.suffix.lower()
+                if ext in IMAGE_EXTS or ext in VIDEO_EXTS:
+                    files.append(str(p))
 
         self.playlist.set_images(files)
         mode = "random" if self.mode_text == "隨機" else "sequential"
@@ -71,12 +79,19 @@ class ScreenPlayer(QObject):
 
     def apply_current(self):
         path = self.playlist.current()
-        if path:
-            self.engine.apply_smart_fill(
-                path, screen_mode=self.screen_mode_text)
-            self.wallpaper_changed.emit(path)
-            return path
-        return None
+        if not path:
+            return None
+        # 4-1：影片先略過，避免當圖片載入；4-2 再接 mpv
+        if self.is_video_path(path):
+            print(f"[4-1] 清單含影片（稍後播放）: {path}")
+            # 暫時自動跳到下一筆非影片（若全是影片就不動）
+            for _ in range(len(self.playlist.images)):
+                nxt = self.playlist.next()
+                if nxt and not self.is_video_path(nxt):
+                    path = nxt
+                    break
+            else:
+                return None
 
     def next(self):
         path = self.playlist.next()
@@ -101,14 +116,21 @@ class ScreenPlayer(QObject):
     def restart_timer(self):
         self.timer.stop()
         self.is_paused = False
-        if self.interval_text == "不限時間":
+
+        text = self.interval_text
+        if text == "不限時間":
             return
+
+        # 播完為止：影片由 4-2/4-3 用結束事件切換；圖片用上一次秒數
+        if text == "播完為止(僅影片)":
+            text = self.last_numeric_interval or "10秒"
+
         mapping = {
             "10秒": 10, "15秒": 15, "30秒": 30,
             "1分鐘": 60, "5分鐘": 300, "10分鐘": 600,
             "15分鐘": 900, "30分鐘": 1800,
         }
-        seconds = mapping.get(self.interval_text, 10)
+        seconds = mapping.get(text, 10)
         self.timer.start(seconds * 1000)
 
     def start(self):
