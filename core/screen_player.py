@@ -34,6 +34,11 @@ class ScreenPlayer(QObject):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.next)
 
+        self._wait_video_end = False
+        self._end_watch = QTimer(self)
+        self._end_watch.setInterval(500)  # 每 0.5 秒檢查 mpv 是否結束
+        self._end_watch.timeout.connect(self._on_end_watch)
+
     @staticmethod
     def is_video_path(path: str) -> bool:
         return Path(path).suffix.lower() in VIDEO_EXTS
@@ -83,7 +88,40 @@ class ScreenPlayer(QObject):
         mode = "random" if self.mode_text == "隨機" else "sequential"
         self.playlist.set_mode(mode)
 
+    def _stop_end_watch(self):
+        self._wait_video_end = False
+        self._end_watch.stop()
+
+    def _videos_still_playing(self) -> bool:
+        if getattr(self, "_is_all", False):
+            walls = getattr(self, "_video_walls", [])
+            if not walls:
+                return False
+            return any(vw.is_playing() for vw in walls)
+        if self.video_wall:
+            return self.video_wall.is_playing()
+        return False
+
+    def _start_end_watch(self):
+        """播完為止：停秒數 timer，改等 mpv 結束"""
+        self.timer.stop()
+        self._wait_video_end = True
+        self._end_watch.start()
+
+    def _on_end_watch(self):
+        if not self._wait_video_end:
+            self._end_watch.stop()
+            return
+        # 仍在播就繼續等
+        if self._videos_still_playing():
+            return
+        # 已結束 → 下一張
+        self._stop_end_watch()
+        self.next()
+
     def apply_current(self):
+        self._stop_end_watch()
+
         path = self.playlist.current()
         if not path:
             return None
@@ -101,6 +139,8 @@ class ScreenPlayer(QObject):
                         ok_any = True
                 if ok_any:
                     self.wallpaper_changed.emit(path)
+                    if self.interval_text == "播完為止(僅影片)":
+                        self._start_end_watch()
                     return path
                 return None
 
@@ -113,6 +153,8 @@ class ScreenPlayer(QObject):
                 )
                 if ok:
                     self.wallpaper_changed.emit(path)
+                    if self.interval_text == "播完為止(僅影片)":
+                        self._start_end_watch()
                     return path
             print(f"影片播放失敗: {path}")
             return None
@@ -129,31 +171,40 @@ class ScreenPlayer(QObject):
         return path
 
     def next(self):
+        self._stop_end_watch()
         path = self.playlist.next()
         if not path:
             return None
         result = self.apply_current()
-        self.restart_timer()
+        # 若正在等影片播完，不要用秒數 timer
+        if not self._wait_video_end:
+            self.restart_timer()
         return result
 
     def prev(self):
+        self._stop_end_watch()
         path = self.playlist.prev()
         if not path:
             return None
         result = self.apply_current()
-        self.restart_timer()
+        if not self._wait_video_end:
+            self.restart_timer()
         return result
 
     def restart_timer(self):
         self.timer.stop()
         self.is_paused = False
 
+        # 正在等影片播完 → 不啟動秒數 timer
+        if self._wait_video_end:
+            return
+
         text = self.interval_text
         if text == "不限時間":
             return
 
-        # 播完為止：影片由 4-2/4-3 用結束事件切換；圖片用上一次秒數
         if text == "播完為止(僅影片)":
+            # 圖片才會走到這裡；影片在 apply_current 已改走 end_watch
             text = self.last_numeric_interval or "10秒"
 
         mapping = {
@@ -167,9 +218,11 @@ class ScreenPlayer(QObject):
     def start(self):
         if self.playlist.images:
             self.apply_current()
-            self.restart_timer()
+            if not self._wait_video_end:
+                self.restart_timer()
 
     def stop(self):
+        self._stop_end_watch()
         self.timer.stop()
         self.is_paused = True
         if getattr(self, "_is_all", False):
