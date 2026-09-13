@@ -1,5 +1,5 @@
 {
-  "last_edit_key": "1",
+  "last_edit_key": "all",
   "ui_sources": {
     "folders": [
       {
@@ -15,23 +15,8 @@
         "recursive": true
       }
     ],
-    "images": [
-      "D:/圖/J/(7).jpg",
-      "D:/圖/J/(9).jpg",
-      "D:/圖/J/1 (9).JPG",
-      "D:/圖/J/1 (24).jpg",
-      "D:/圖/J/1 (38).jpg",
-      "D:/圖/J/1 (40).JPG",
-      "D:/圖/J/1 (65).JPG",
-      "D:/圖/J/1 (70).JPG",
-      "D:/圖/J/1 (80).jpg",
-      "D:/圖/J/1 (83).jpg",
-      "D:/圖/J/1 (89).JPG",
-      "D:/圖/J/1 (104).JPG"
-    ],
-    "videos": [
-      "D:/影/J/NSFW/A/#stripchat #ni_ni  电报搜@rewudingzh (1).mp4"
-    ]
+    "images": [],
+    "videos": []
   },
   "players": {
     "all": {
@@ -53,86 +38,12 @@
       "mode": "隨機"
     },
     "1": {
-      "sources": [
-        {
-          "path": "D:\\圖\\J\\Eva\\1\\2",
-          "recursive": true
-        },
-        {
-          "path": "D:/圖/J/(7).jpg",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/(9).jpg",
-          "recursive": false
-        }
-      ],
+      "sources": [],
       "interval": "10秒",
       "mode": "順序"
     },
     "2": {
-      "sources": [
-        {
-          "path": "D:\\圖\\J\\Eva\\1",
-          "recursive": false
-        },
-        {
-          "path": "D:\\圖\\J\\Eva\\1\\2",
-          "recursive": true
-        },
-        {
-          "path": "D:/圖/J/(7).jpg",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/(9).jpg",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (9).JPG",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (24).jpg",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (38).jpg",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (40).JPG",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (65).JPG",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (70).JPG",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (80).jpg",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (83).jpg",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (89).JPG",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/1 (104).JPG",
-          "recursive": false
-        },
-        {
-          "path": "D:/影/J/NSFW/A/#stripchat #ni_ni  电报搜@rewudingzh (1).mp4",
-          "recursive": false
-        }
-      ],
+      "sources": [],
       "interval": "10秒",
       "mode": "隨機"
     }

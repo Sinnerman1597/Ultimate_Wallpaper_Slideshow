@@ -57,15 +57,19 @@ class MainWindow(QMainWindow):
 
         # 從 config 還原來源列表與各螢幕設定
         self._restore_from_config()
-        # 還原後依「誰有來源」決定互斥啟動
-        all_player = self.players.get("all")
-        all_has = all_player and bool(all_player.playlist.images)
+        # 有各別螢幕來源 → 各別播；否則若有同步來源 → 只播同步
         any_single = any(
             k != "all" and bool(p.playlist.images)
             for k, p in self.players.items()
         )
         if any_single:
-            self._apply_mutex("1")   # 走「各別螢幕」分支即可
+            if "all" in self.players:
+                self.players["all"].stop()
+            for k, p in self.players.items():
+                if k != "all" and p.playlist.images:
+                    p.start()
+                elif k != "all":
+                    p.stop()
         elif self.players.get("all") and self.players["all"].playlist.images:
             self._apply_mutex("all")
 
@@ -588,12 +592,16 @@ class MainWindow(QMainWindow):
         player.set_mode(self.combo_mode.currentText())
 
         if self.current_edit_key == "all":
+            # 記住同步來源，並清掉各別螢幕的舊來源（避免之後又跳回 B）
             self.last_sync_sources = [dict(s) for s in sources]
             self.independent_keys.clear()
+            for k, p in self.players.items():
+                if k != "all":
+                    p.set_sources([])   # 清掉舊的 A/B
+                    p.stop()
         else:
             self.independent_keys.add(self.current_edit_key)
 
-        # 互斥：同步 vs 各別螢幕
         self._apply_mutex(self.current_edit_key)
 
         self.is_editing = False
