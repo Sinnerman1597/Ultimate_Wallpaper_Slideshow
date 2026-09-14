@@ -4,11 +4,13 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QListWidget, QPushButton, QLabel, QComboBox,
     QFileDialog, QGroupBox, QListWidgetItem, QAbstractItemView,
-    QApplication, QMessageBox, QCheckBox
+    QApplication, QMessageBox, QCheckBox,
+    QStackedWidget
 )
 from PySide6.QtCore import Qt
 from core.screen_player import ScreenPlayer
 from core.video_wallpaper import VideoWallpaper
+from ui.preview_page import PreviewPage
 
 
 class MainWindow(QMainWindow):
@@ -125,7 +127,26 @@ class MainWindow(QMainWindow):
     def _setup_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
-        layout = QHBoxLayout(central)
+        root = QHBoxLayout(central)
+
+        # ===== 左側功能列 =====
+        nav = QVBoxLayout()
+        self.btn_nav_wallpaper = QPushButton("桌布")
+        self.btn_nav_preview = QPushButton("預覽")
+        self.btn_nav_wallpaper.setCheckable(True)
+        self.btn_nav_preview.setCheckable(True)
+        self.btn_nav_wallpaper.setChecked(True)
+        nav.addWidget(self.btn_nav_wallpaper)
+        nav.addWidget(self.btn_nav_preview)
+        nav.addStretch()
+        root.addLayout(nav)
+
+        self.stack = QStackedWidget()
+        root.addWidget(self.stack, stretch=1)
+
+        # ===== 頁 0：桌布（原本的 UI）=====
+        self.page_wallpaper = QWidget()
+        layout = QHBoxLayout(self.page_wallpaper)
 
         # ===== 左邊：三大區塊來源列表 =====
         left = QVBoxLayout()
@@ -267,6 +288,11 @@ class MainWindow(QMainWindow):
         right.addStretch()
         layout.addLayout(right, 1)
 
+        self.stack.addWidget(self.page_wallpaper)
+        # ===== 頁 1：預覽 =====
+        self.page_preview = PreviewPage()
+        self.stack.addWidget(self.page_preview)
+
     def _init_screen_combo(self):
         self.combo_screen.clear()
         self.combo_screen.addItem("所有螢幕同步")
@@ -293,6 +319,15 @@ class MainWindow(QMainWindow):
         self.chk_all_images.stateChanged.connect(self._toggle_all_images)
         self.chk_all_videos.stateChanged.connect(self._toggle_all_videos)
         self.btn_restore_system.clicked.connect(self.restore_system_wallpaper)
+        self.btn_nav_wallpaper.clicked.connect(lambda: self._switch_page(0))
+        self.btn_nav_preview.clicked.connect(lambda: self._switch_page(1))
+
+    def _switch_page(self, index: int):
+        self.stack.setCurrentIndex(index)
+        self.btn_nav_wallpaper.setChecked(index == 0)
+        self.btn_nav_preview.setChecked(index == 1)
+        if index == 1:
+            self.page_preview.setFocus()
 
     def _get_key_from_combo(self) -> str:
         text = self.combo_screen.currentText()
