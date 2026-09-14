@@ -13,14 +13,9 @@ try:
     import win32gui
     import win32con
     import win32api
-    import win32process
     HAS_WIN32 = True
 except ImportError:
     HAS_WIN32 = False
-
-user_WNDPROC = ctypes.WINFUNCTYPE(
-    ctypes.c_long, ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p
-)
 
 _cached_workerw: int | None = None
 

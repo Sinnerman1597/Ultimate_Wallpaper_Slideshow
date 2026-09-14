@@ -2,11 +2,6 @@ from pathlib import Path
 from PIL import Image
 import tempfile
 from utils.win32_helper import set_wallpaper
-from utils.desktop_wallpaper import (
-    get_primary_monitor_id,
-    set_wallpaper_for_monitor,
-    set_wallpaper_all
-)
 from PySide6.QtWidgets import QApplication
 
 
