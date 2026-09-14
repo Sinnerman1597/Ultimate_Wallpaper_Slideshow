@@ -186,11 +186,11 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Label,Microsoft YaHei,10,&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,0,0,3,6,0,9,20,20,16,1
+Style: Label,Microsoft YaHei,20,&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,0,0,3,6,0,9,20,20,16,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.00,9:59:59.00,Label,,0,0,0,,{text}
+Dialogue: 0,0:00:00.00,9:59:59.00,Label,,0,0,0,,{{\\fs14}}{text}
 """
         try:
             fd, ass_path = tempfile.mkstemp(suffix=".ass", prefix="uws_osd_")
@@ -283,6 +283,7 @@ Dialogue: 0,0:00:00.00,9:59:59.00,Label,,0,0,0,,{text}
                     "--sub-align-y=top",
                     "--sub-margin-x=16",
                     "--sub-margin-y=12",
+                    "--sub-scale=1.00",
                 ]
 
         cmd.append(path)

@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
 
         self.current_edit_key = "all"      # 目前正在設定的螢幕
         self.is_editing = False
+        self.slideshow_enabled = True  # False = 已恢復系統桌布，暫停輪播
         self.last_sync_sources = []      # 最後一次「所有螢幕同步」的來源
         self.independent_keys = set()    # 同步之後，有「再次確認過」的各別螢幕
         self._tree_check_guard = False
@@ -543,6 +544,10 @@ class MainWindow(QMainWindow):
         - 在 independent_keys 裡的螢幕用自己的 sources
         - 其餘各別螢幕改用 last_sync_sources（維持同步時的內容）
         """
+        if not getattr(self, "slideshow_enabled", True):
+            for player in self.players.values():
+                player.stop()
+            return
         if active_key == "all":
             self.independent_keys.clear()
             for key, player in self.players.items():
@@ -636,6 +641,7 @@ class MainWindow(QMainWindow):
                     sources.append({"path": path, "recursive": False})
 
         player = self.players[self.current_edit_key]
+        self.slideshow_enabled = True
         player.set_sources(sources)
         player.set_interval(self.combo_interval.currentText())
         player.set_mode(self.combo_mode.currentText())
@@ -651,6 +657,7 @@ class MainWindow(QMainWindow):
         else:
             self.independent_keys.add(self.current_edit_key)
 
+        self.slideshow_enabled = True
         self._apply_mutex(self.current_edit_key)
         self._update_lock_label()
 
@@ -775,18 +782,39 @@ class MainWindow(QMainWindow):
                 self.combo_mode.blockSignals(False)
 
     def closeEvent(self, event):
+        # 1. 停輪播與 mpv
         for p in self.players.values():
             try:
-                p.stop()  # 會停 timer + 該 player 的 mpv
+                p.stop()
             except Exception:
                 pass
-        self._save_all_config()
+
+        # 2. 還原啟動時記住的系統桌布（圖片模式才靠這步）
+        try:
+            from utils.win32_helper import set_wallpaper
+            from pathlib import Path
+            path = self.config.data.get("original_wallpaper", "")
+            if path and Path(path).is_file():
+                set_wallpaper(path)
+        except Exception as e:
+            print(f"關閉時恢復系統桌布失敗: {e}")
+
+        # 3. 存設定
+        try:
+            self._save_all_config()
+        except Exception:
+            pass
+
         super().closeEvent(event)
 
     def prev_current(self):
+        if not self.slideshow_enabled:
+            return
         self.players[self.current_edit_key].prev()
 
     def next_current(self):
+        if not self.slideshow_enabled:
+            return
         self.players[self.current_edit_key].next()
 
     def restore_system_wallpaper(self):
@@ -806,29 +834,33 @@ class MainWindow(QMainWindow):
                 pass
 
         self.independent_keys.clear()
+        self.slideshow_enabled = False
 
-        from utils.win32_helper import set_wallpaper, get_system_wallpaper_path
-        # 優先用啟動時記住的路徑
-        path = self.config.get(
-            "original_wallpaper") or get_system_wallpaper_path()
-        if path:
-            from pathlib import Path
-            if Path(path).is_file():
-                set_wallpaper(path)
-                QMessageBox.information(self, "完成", "已恢復系統桌布。")
-                return
+        from utils.win32_helper import set_wallpaper
+        from pathlib import Path
+        path = self.config.data.get("original_wallpaper", "")
+        if path and Path(path).is_file():
+            set_wallpaper(path)
+            QMessageBox.information(self, "完成", "已恢復系統桌布。")
+            return
         QMessageBox.warning(self, "提示", "找不到系統桌布檔案，請到系統設定手動還原。")
 
     # ===== 浮動工具列專用（對應各自螢幕）=====
     def _toolbar_prev(self, key: str):
+        if not self.slideshow_enabled:
+            return
         if key in self.players:
             self.players[key].prev()
 
     def _toolbar_next(self, key: str):
+        if not self.slideshow_enabled:
+            return
         if key in self.players:
             self.players[key].next()
 
     def _toolbar_pause(self, key: str, toolbar):
+        if not self.slideshow_enabled:
+            return
         player = self.players.get(key)
         if not player:
             return
@@ -840,5 +872,7 @@ class MainWindow(QMainWindow):
             toolbar.set_paused(True)   # ▶ 可恢復
 
     def _toolbar_delete(self, key: str):
+        if not self.slideshow_enabled:
+            return
         if key in self.players:
             self.players[key].delete_current()

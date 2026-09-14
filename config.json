@@ -11,11 +11,15 @@
         "recursive": true
       },
       {
-        "path": "D:/影/J/NSFW/BJ/小仙雲/1",
+        "path": "D:/圖/J/Eva",
         "recursive": true
       },
       {
-        "path": "D:/圖/J/Eva",
+        "path": "D:/影/J/NSFW/Twitter/Onlyfans/QAZ/kittyxkum/長",
+        "recursive": true
+      },
+      {
+        "path": "D:/影/J/NSFW/Twitter/Onlyfans/QAZ/kittyxkum",
         "recursive": true
       }
     ],
@@ -32,14 +36,6 @@
         {
           "path": "D:/影/J/NSFW/BJ/小仙雲",
           "recursive": false
-        },
-        {
-          "path": "D:\\影\\J\\NSFW\\BJ\\小仙雲\\1",
-          "recursive": true
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/小仙雲/1",
-          "recursive": true
         }
       ],
       "interval": "播完為止(僅影片)",
@@ -54,14 +50,6 @@
         {
           "path": "D:/影/J/NSFW/BJ/小仙雲",
           "recursive": false
-        },
-        {
-          "path": "D:\\影\\J\\NSFW\\BJ\\小仙雲\\1",
-          "recursive": true
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/小仙雲/1",
-          "recursive": true
         },
         {
           "path": "D:/圖/J/Eva",
@@ -82,15 +70,15 @@
     "2": {
       "sources": [
         {
-          "path": "D:/圖/J/Eva",
+          "path": "D:/影/J/NSFW/Twitter/Onlyfans/QAZ/kittyxkum",
           "recursive": false
         },
         {
-          "path": "D:\\圖\\J\\Eva\\1",
+          "path": "D:\\影\\J\\NSFW\\Twitter\\Onlyfans\\QAZ\\kittyxkum\\短",
           "recursive": true
         },
         {
-          "path": "D:\\圖\\J\\Eva\\3",
+          "path": "D:\\影\\J\\NSFW\\Twitter\\Onlyfans\\QAZ\\kittyxkum\\長",
           "recursive": true
         }
       ],
@@ -115,5 +103,6 @@
   },
   "show_filename_overlay": true,
   "screen_mode": "所有螢幕同步",
-  "interval": "10秒"
+  "interval": "10秒",
+  "original_wallpaper": "C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\DesktopSpotlight\\Assets\\Images\\image_3.jpg"
 }
