@@ -1,25 +1,13 @@
 {
-  "last_edit_key": "2",
+  "last_edit_key": "1",
   "ui_sources": {
     "folders": [
       {
-        "path": "D:/影/J/NSFW/BJ/yum_707",
+        "path": "D:/圖/J/圖/桌圖/ㄇㄟ/NSFW/上原亞衣",
         "recursive": true
       },
       {
-        "path": "D:/影/J/NSFW/BJ/小仙雲",
-        "recursive": true
-      },
-      {
-        "path": "D:/圖/J/Eva",
-        "recursive": true
-      },
-      {
-        "path": "D:/影/J/NSFW/Twitter/Onlyfans/QAZ/kittyxkum/長",
-        "recursive": true
-      },
-      {
-        "path": "D:/影/J/NSFW/Twitter/Onlyfans/QAZ/kittyxkum",
+        "path": "D:/圖/J/圖/桌圖/ㄇㄟ/NSFW/沖田杏梨",
         "recursive": true
       }
     ],
@@ -44,45 +32,21 @@
     "1": {
       "sources": [
         {
-          "path": "D:/影/J/NSFW/BJ/yum_707",
-          "recursive": true
-        },
-        {
-          "path": "D:/影/J/NSFW/BJ/小仙雲",
-          "recursive": false
-        },
-        {
-          "path": "D:/圖/J/Eva",
-          "recursive": false
-        },
-        {
-          "path": "D:\\圖\\J\\Eva\\1",
-          "recursive": true
-        },
-        {
-          "path": "D:\\圖\\J\\Eva\\3",
+          "path": "D:/圖/J/圖/桌圖/ㄇㄟ/NSFW/上原亞衣",
           "recursive": true
         }
       ],
-      "interval": "10秒",
+      "interval": "15秒",
       "mode": "隨機"
     },
     "2": {
       "sources": [
         {
-          "path": "D:/影/J/NSFW/Twitter/Onlyfans/QAZ/kittyxkum",
-          "recursive": false
-        },
-        {
-          "path": "D:\\影\\J\\NSFW\\Twitter\\Onlyfans\\QAZ\\kittyxkum\\短",
-          "recursive": true
-        },
-        {
-          "path": "D:\\影\\J\\NSFW\\Twitter\\Onlyfans\\QAZ\\kittyxkum\\長",
+          "path": "D:/圖/J/圖/桌圖/ㄇㄟ/NSFW/沖田杏梨",
           "recursive": true
         }
       ],
-      "interval": "10秒",
+      "interval": "15秒",
       "mode": "隨機"
     }
   },
