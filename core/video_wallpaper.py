@@ -17,9 +17,6 @@ try:
 except ImportError:
     HAS_WIN32 = False
 
-_cached_workerw: int | None = None
-
-
 # 全模組只找一次 WorkerW，避免每次播影片都送 0x052C 弄到工作列
 _cached_workerw: int | None = None
 
@@ -278,7 +275,7 @@ Dialogue: 0,0:00:00.00,9:59:59.00,Label,,0,0,0,,{{\\fs14}}{text}
                     "--sub-align-y=top",
                     "--sub-margin-x=16",
                     "--sub-margin-y=12",
-                    "--sub-scale=1.00",
+                    "--sub-scale=1.25",
                 ]
 
         cmd.append(path)

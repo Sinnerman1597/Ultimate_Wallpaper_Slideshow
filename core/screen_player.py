@@ -36,7 +36,7 @@ class ScreenPlayer(QObject):
 
         self._wait_video_end = False
         self._end_watch = QTimer(self)
-        self._end_watch.setInterval(500)  # 每 0.5 秒檢查 mpv 是否結束
+        self._end_watch.setInterval(1000)  # 每 0.5 秒檢查 mpv 是否結束
         self._end_watch.timeout.connect(self._on_end_watch)
 
     @staticmethod

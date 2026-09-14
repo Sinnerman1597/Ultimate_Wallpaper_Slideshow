@@ -700,9 +700,10 @@ class MainWindow(QMainWindow):
                 "interval": player.interval_text,
                 "mode": player.mode_text,
             }
-        self.config.set("players", players_data)
-        self.config.set("ui_sources", self._collect_ui_sources())
-        self.config.set("last_edit_key", self.current_edit_key)
+        self.config.data["players"] = players_data
+        self.config.data["ui_sources"] = self._collect_ui_sources()
+        self.config.data["last_edit_key"] = self.current_edit_key
+        self.config.save()  # 只寫一次磁碟
 
     def _restore_from_config(self):
         """啟動時還原左側列表與各 ScreenPlayer"""
