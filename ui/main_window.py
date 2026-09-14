@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QFileDialog, QGroupBox, QListWidgetItem, QAbstractItemView,
     QApplication, QMessageBox, QCheckBox
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from core.screen_player import ScreenPlayer
 from core.video_wallpaper import VideoWallpaper
 
@@ -15,9 +15,8 @@ class MainWindow(QMainWindow):
     IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp', '.gif'}
     VIDEO_EXTS = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm'}
 
-    def __init__(self, source_manager, engine, config):
+    def __init__(self, engine, config):
         super().__init__()
-        self.source_manager = source_manager
         self.engine = engine
         self.config = config
 

@@ -20,16 +20,6 @@ def set_wallpaper(image_path: str):
     return bool(result)
 
 
-def get_screen_info():
-    """取得所有螢幕資訊"""
-    screens = []
-    for i in range(win32api.GetSystemMetrics(80)):  # SM_CMONITORS
-        # 簡化版，之後會用更精準的 EnumDisplayMonitors
-        pass
-    # 先用 Qt 的 QScreen 會更準，這個之後補
-    return screens
-
-
 def get_system_wallpaper_path() -> str:
     """從登錄讀取使用者目前的桌布路徑"""
     try:
